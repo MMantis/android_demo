@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- !!! only user for QHVCSdkInit !!!-->
+    <!--调度url-->
+    <string name="config_url_schedule">http://g2.test.live.360.cn/</string>
+    <!--打点url-->
+    <string name="config_url_stat">http://t.qos.live.360.cn/</string>
+    <!-- merge -->
+    <string name="config_url_merge">http://101.198.148.136/meg.gif</string>
+    <!-- mic -->
+    <string name="config_url_mic">http://101.198.148.136/mic.gif</string>
+    <!--feedback url-->
+    <string name="config_url_feedback">http://101.198.148.136/fb.gif</string>
+    <!--云控url-->
+    <string name="config_url_control">http://sdk.test.live.360.cn/</string>
+
+    <!--用户id，用户唯一标识-->
+    <string name="config_uid">2599000</string>
+
+
+    <!--  !!! only user for view show default value !!! -->
+    <!--业务id，调度时使用的channel-->
+    <string name="config_cid">qvod_demo_q1</string>
+    <string name="config_live_cid">live_demo_q1</string><!--直播cid-->
+    <!--业务id-->
+    <string name="config_bid">demo</string>
+
+    <!-- 直播sn  -->
+    <string name="config_live_sn"></string>
+
+    <!--  !!! only user for view show default value !!! -->
+    <!-- 点播 -->
+    <!--http://static.s3.huajiao.com/Object.access/hj-video/NTg0MzM2MjQxNDgxMDE2NDEwNDA1MTUwMjUxMjk5NDE0ODEwMTYzOTU4ODgubXA0-->
+    <!--http://vod.cdn.huajiao.com/huikan_huajiao/vod-bucket-bj/_LC_ps3_non_3493580314867023631634335_SX.m3u8-->
+    <string name="config_vod_url">http://static.s3.huajiao.com/Object.access/hj-video/NTg1NzY5ODgxNDgxNjM2MzM5OTUxMjcwNjg1MDUzNy5tcDQ=</string>
+
+    <!--上传-->
+    <string name="config_upload_bucket">videotest</string>
+
+</resources>
