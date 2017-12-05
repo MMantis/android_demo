@@ -155,7 +155,11 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar" />
-
+        <activity
+            android:name="com.qihoo.videocloud.player.vod.VodSwitchResolutionActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar" />
     </application>
 
 </manifest>

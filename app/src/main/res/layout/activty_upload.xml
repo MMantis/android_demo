@@ -251,16 +251,71 @@
             android:textColor="#333333"
             android:textSize="14sp" />
     </RelativeLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#99eeeeee" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:orientation="horizontal"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp">
+
+        <ImageView
+            android:id="@+id/s_iv_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:src="@drawable/url"
+            android:visibility="invisible"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="11dp"
+            android:layout_toRightOf="@+id/s_iv_speed"
+            android:text="@string/str_upload_max_speed"
+            android:textColor="@color/recordtextclore"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/upload_max_speed"
+            style="@style/record_prepare_edittext"
+            android:layout_width="130dp"
+            android:layout_alignParentRight="false"
+            android:layout_toLeftOf="@+id/upload_speed_unit"
+            android:text="100"
+            android:maxLines="1"
+            android:inputType="number" />
+
+        <TextView
+            android:id="@+id/upload_speed_unit"
+            android:layout_width="45dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginLeft="5dp"
+            android:text="kBps"
+            android:textColor="#333333"
+            android:textSize="14sp" />
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#99eeeeee" />
+
     <Button
         android:id="@+id/upload_key_logger"
         android:layout_width="100dp"
         android:layout_height="30dp"
-        android:layout_margin="10dp"
         android:layout_gravity="center_horizontal"
+        android:layout_margin="10dp"
         android:background="@drawable/edittext_bg_selector"
         android:text="上传关键日志"
         android:textColor="#333333"

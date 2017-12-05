@@ -1,11 +1,16 @@
 
 package com.qihoo.videocloud.upload;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
@@ -25,7 +30,9 @@ import com.qihoo.livecloud.upload.OnUploadListener;
 import com.qihoo.livecloud.upload.QHVCUpload;
 import com.qihoo.livecloud.upload.QHVCUploadConfig;
 import com.qihoo.livecloud.upload.QHVCUploadEvent;
+import com.qihoo.livecloud.upload.core.UploadConstant;
 import com.qihoo.livecloud.upload.utils.UploadError;
+import com.qihoo.livecloud.upload.utils.UploadLogger;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.utils.AndroidUtil;
 
@@ -39,6 +46,7 @@ public class UploadActivity extends Activity implements View.OnClickListener {
 
     private final static String TAG = "UploadActivity";
 
+    private static final int PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE = 1000;
     private final static int REQUEST_CODE_FILE_BROWSE = 1;
 
     private EditText akEditText;
@@ -47,6 +55,7 @@ public class UploadActivity extends Activity implements View.OnClickListener {
     private EditText cidEditText;
     private EditText bucketEditText;
     private EditText fileEditText;
+    private EditText maxSpeedEditText;
 
     private CommonProgressDialog mProgressDialog;
 
@@ -55,8 +64,25 @@ public class UploadActivity extends Activity implements View.OnClickListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        checkSelfPermissionAndRequest(Manifest.permission.WRITE_EXTERNAL_STORAGE, PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE);
+
         initView();
         initData();
+    }
+
+    public boolean checkSelfPermissionAndRequest(String permission, int requestCode) {
+        Logger.d(TAG, "checkSelfPermission " + permission + " " + requestCode);
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[] {
+                            permission
+                    },
+                    requestCode);
+            return false;
+        }
+
+        return true;
     }
 
     private void initView() {
@@ -73,6 +99,8 @@ public class UploadActivity extends Activity implements View.OnClickListener {
         cidEditText = (EditText) findViewById(R.id.upload_channel_id);
         bucketEditText = (EditText) findViewById(R.id.upload_bucket);
         fileEditText = (EditText) findViewById(R.id.upload_file);
+        maxSpeedEditText = (EditText) findViewById(R.id.upload_max_speed);
+
     }
 
     private void initData() {
@@ -113,7 +141,12 @@ public class UploadActivity extends Activity implements View.OnClickListener {
             case R.id.upload_key_logger: {
                 mProgressDialog = createdProgressDialog();
                 mProgressDialog.show();
-                uploadEvent = QHVCUpload.uploadLog(getUploadConfig(null), blockUploadListener);
+                int maxSpeed = Integer.parseInt(maxSpeedEditText.getText().toString().trim());
+                if (maxSpeed < 0) {
+                    maxSpeed = 0;
+                }
+                QHVCUpload.setUploadLimitSpeed(maxSpeed); // 100kbps
+                uploadEvent = QHVCUpload.uploadLog(UploadActivity.this, getUploadConfig(null), blockUploadListener);
                 break;
             }
             default:
@@ -165,6 +198,12 @@ public class UploadActivity extends Activity implements View.OnClickListener {
             return;
         }
 
+        int maxSpeed = Integer.parseInt(maxSpeedEditText.getText().toString().trim());
+        if (maxSpeed < 0) {
+            AndroidUtil.showToast(this, "最大速度输入不正确");
+            return;
+        }
+
         File file = new File(filename);
         int parallelNum = QHVCUpload.getParallel(file.length());
         //警告：token的计算应该由业务服务端生成，严禁将ak、sk放到客户端，此处放客户端仅用于演示
@@ -176,7 +215,16 @@ public class UploadActivity extends Activity implements View.OnClickListener {
         }
         mProgressDialog = createdProgressDialog();
         mProgressDialog.show();
-        uploadEvent = QHVCUpload.uploadFile(file, token, getUploadConfig(file), blockUploadListener);
+        //        uploadEvent = QHVCUpload.uploadFile(file, token, getUploadConfig(file), blockUploadListener);
+
+        String dir = new File(Environment.getExternalStorageDirectory(), "LiveCloud/UploadCache").getAbsolutePath();
+        UploadLogger.d(TAG, "dir: " + dir);
+        try {
+            QHVCUpload.setUploadLimitSpeed(maxSpeed); // 100kbps
+            uploadEvent = QHVCUpload.uploadFile(file, token, getUploadConfig(file), blockUploadListener, new FileRecorder(dir), new FileKeyGenerator());
+        } catch (Exception e) {
+            Logger.e(TAG, e.getMessage());
+        }
     }
 
     /**
@@ -210,6 +258,7 @@ public class UploadActivity extends Activity implements View.OnClickListener {
      */
     private String getBlockToken(File file, int parallelNum, String ak, String sk, String bucket) {
         String strategyJson = toGetTokenJson(file, parallelNum, bucket);
+        UploadLogger.d(UploadConstant.TAG, strategyJson);
         Logger.d(TAG, strategyJson);
         String safeEncode = URLSafeBase64.encodeToString(strategyJson);
         Logger.d(TAG, safeEncode);
@@ -235,7 +284,7 @@ public class UploadActivity extends Activity implements View.OnClickListener {
     private OnUploadListener blockUploadListener = new OnUploadListener() {
         @Override
         public void onSuccess(String result) {
-            if (mProgressDialog != null) {
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
                 mProgressDialog.dismiss();
                 showToast(0, null);
             }
@@ -245,20 +294,26 @@ public class UploadActivity extends Activity implements View.OnClickListener {
         @Override
         public void onProgress(long total, long progress) {
             if (mProgressDialog != null) {
-                int ps = (int) (progress * 100 / total);
-                mProgressDialog.setProgress(ps);
+
+                if (total > 0 && progress >= 0) {
+                    int ps = (int) (progress * 100 / total);
+                    mProgressDialog.setProgress(ps);
+
+                    Logger.d(TAG, "percent: " + ps + " total=" + total + " progress=" + progress);
+                }
             }
-            Logger.d(TAG, "ian, total=" + total + " progress=" + progress);
         }
 
         @Override
         public void onBlockProgress(int total, int currBlock) {
-            Logger.d(TAG, "ian, totalBlock: " + total + ", currBlock: " + currBlock);
+            if (total > 0 && currBlock >= 0) {
+                Logger.d(TAG, "block percent." + (int) (currBlock * 100 / total) + " totalBlock: " + total + ", currBlock: " + currBlock);
+            }
         }
 
         @Override
         public void onFailed(UploadError uploadError) {
-            if (mProgressDialog != null) {
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
                 mProgressDialog.dismiss();
                 showToast(uploadError.getErrCode(), uploadError.getErrMsg());
             }

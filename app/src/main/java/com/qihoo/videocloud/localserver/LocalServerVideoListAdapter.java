@@ -331,8 +331,7 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
         mQHVCPlayer.setSurfaceViewport(0, 0, playView.getWidth(), playView.getHeight());
         try {
             Map<String, Object> options = new HashMap<>();
-            options.put(IQHVCPlayerAdvanced.KEY_OPTION_RESOURCE_ID, resId);
-            mQHVCPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, newUrl, mCid, options);
+            mQHVCPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, new String[]{resId}, new String[]{ newUrl}, 0, mCid, "",options);
         } catch (Exception e) {
             Logger.e(TAG, e.getMessage());
             Toast.makeText(mContext, "数据源异常", Toast.LENGTH_SHORT).show();

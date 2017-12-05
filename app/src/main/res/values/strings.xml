@@ -51,6 +51,7 @@
     <string name="str_upload_sk">SK</string>
     <string name="str_upload_bucket">Bucket 空间名称</string>
     <string name="str_upload_file">File 上传文件路径</string>
+    <string name="str_upload_max_speed">最大上传速度</string>
 
     <!--下载-->
     <string name="str_download">下载</string>
