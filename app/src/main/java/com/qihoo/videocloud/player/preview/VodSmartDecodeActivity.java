@@ -118,6 +118,7 @@ public class VodSmartDecodeActivity extends Activity {
             @Override
             public boolean onError(int handle, int what, int extra) {
                 Log.e(TAG, "onError. handle: " + handle + " what: " + what + " extra: " + extra);
+                Toast.makeText(VodSmartDecodeActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
                 return false;
             }
         });

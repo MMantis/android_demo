@@ -23,6 +23,7 @@
     <!--业务id，调度时使用的channel-->
     <string name="config_cid">qvod_demo_q1</string>
     <string name="config_live_cid">live_demo_q1</string><!--直播cid-->
+
     <!--业务id-->
     <string name="config_bid">demo</string>
 

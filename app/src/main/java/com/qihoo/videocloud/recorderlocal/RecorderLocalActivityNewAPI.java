@@ -406,9 +406,9 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
         mQhvcLiveKitAdvanced.setDisplayPreview(mSurfaceView);
         mQhvcLiveKitAdvanced.setCameraFacing(QHVCConstants.Camera.FACING_FRONT);/*设置使用前置或者后置摄像头*/
         if (horizontalBoolean) {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE,this);/*设置预览方向*/
         } else {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT,this);/*设置预览方向*/
         }
         mQhvcLiveKitAdvanced.setStateCallback(new QHVCRecorderCallBack() {/*设置状态回调*/
             @Override

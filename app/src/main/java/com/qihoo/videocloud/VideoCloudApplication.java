@@ -32,6 +32,8 @@ import org.xutils.x;
 public class VideoCloudApplication extends Application {
     private static final boolean DEBUG = true;
 
+    private static final String TAG = VideoCloudApplication.class.getSimpleName();
+
     private static VideoCloudApplication instance;
 
     @Override
@@ -67,7 +69,9 @@ public class VideoCloudApplication extends Application {
                 .setUserId(getResources().getString(R.string.config_uid))
                 .setDebugUtils(debugUtils);
 
-        // 服务端地址配置
+        /**
+         * [test]服务端地址配置. sdk接入时，不需要关注！
+         */
         QHVCServerAddress serverAddress = Setting.readServerAddress();
         if (serverAddress != null) {
             builder.setServerAddress(serverAddress);
@@ -75,7 +79,10 @@ public class VideoCloudApplication extends Application {
 
         QHVCSdk.getInstance().init(builder.build());
 
-        setStatsURL();/*设置打点地址*/
+        /**
+         * [test]设置打点地址. sdk接入时，不需要关注！
+         */
+        setStatsURL();
 
         BeautyHelper.initFaceUAndBeauty(this);/*美颜初始化和FaceU鉴权*/
     }
@@ -116,16 +123,16 @@ public class VideoCloudApplication extends Application {
                 .imageScaleType(ImageScaleType.IN_SAMPLE_INT).build();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(
                 this)
-                        .threadPriority(Thread.NORM_PRIORITY - 1)
-                        .threadPoolSize(3)
-                        .memoryCacheSize(4 * 1024 * 1024)
-                        .memoryCache(new UsingFreqLimitedMemoryCache(4 * 1024 * 1024))
-                        .diskCacheSize(128 * 1024 * 1024)
-                        .diskCacheFileCount(100)
-                        .imageDownloader(new BaseImageDownloader(this, 30 * 1000, 30 * 1000))
-                        .defaultDisplayImageOptions(options) // default
-                        .writeDebugLogs()
-                        .tasksProcessingOrder(QueueProcessingType.FIFO).build();
+                .threadPriority(Thread.NORM_PRIORITY - 1)
+                .threadPoolSize(3)
+                .memoryCacheSize(4 * 1024 * 1024)
+                .memoryCache(new UsingFreqLimitedMemoryCache(4 * 1024 * 1024))
+                .diskCacheSize(128 * 1024 * 1024)
+                .diskCacheFileCount(100)
+                .imageDownloader(new BaseImageDownloader(this, 30 * 1000, 30 * 1000))
+                .defaultDisplayImageOptions(options) // default
+                .writeDebugLogs()
+                .tasksProcessingOrder(QueueProcessingType.FIFO).build();
         ImageLoader.getInstance().init(config);
     }
 
@@ -134,5 +141,4 @@ public class VideoCloudApplication extends Application {
         super.onTerminate();
         QHVCSdk.getInstance().destroy();
     }
-
 }

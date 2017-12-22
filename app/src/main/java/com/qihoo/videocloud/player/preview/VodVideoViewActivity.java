@@ -1,10 +1,6 @@
 
 package com.qihoo.videocloud.player.preview;
 
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -29,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.qihoo.livecloud.sdk.QHVCSdk;
+import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.NetUtil;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.IQHVCPlayer;
@@ -46,6 +43,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
 
 public class VodVideoViewActivity extends Activity {
 
@@ -290,6 +291,8 @@ public class VodVideoViewActivity extends Activity {
         playView.setOnErrorListener(new IQHVCPlayer.OnErrorListener() {
             @Override
             public boolean onError(int handle, int what, int extra) {
+                Logger.w(TAG, "onError handle: " + handle + " what: " + what + " extra: " + extra);
+                Toast.makeText(VodVideoViewActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
                 return false;
             }
         });
@@ -426,7 +429,7 @@ public class VodVideoViewActivity extends Activity {
 
         logList.clear();
 
-        logList.add("版本号: " + QHVCSdk.getInstance().getVersion());
+        logList.add("版本号: " + QHVCPlayer.getVersion());
         logList.add("播放url: " + url);
         logList.add("分辨率: " + videoWidth + "*" + videoHeight);
         logList.add("码率: " + videoBitratePerSecond / 1024 + "k");

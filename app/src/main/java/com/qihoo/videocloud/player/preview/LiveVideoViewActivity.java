@@ -1,10 +1,6 @@
 
 package com.qihoo.videocloud.player.preview;
 
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
-import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -23,6 +19,7 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.qihoo.livecloud.sdk.QHVCSdk;
+import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.MD5;
 import com.qihoo.livecloud.tools.NetUtil;
 import com.qihoo.livecloudrefactor.R;
@@ -39,6 +36,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
+import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
 
 public class LiveVideoViewActivity extends Activity {
 
@@ -293,6 +294,15 @@ public class LiveVideoViewActivity extends Activity {
             }
         });
 
+        playView.setOnErrorListener(new IQHVCPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(int handle, int what, int extra) {
+                Logger.w(TAG, "onError handle: " + handle + " what: " + what + " extra: " + extra);
+                Toast.makeText(LiveVideoViewActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
+
         try {
             playView.prepareAsync();
         } catch (IllegalStateException e) {
@@ -358,7 +368,7 @@ public class LiveVideoViewActivity extends Activity {
 
         logList.clear();
 
-        logList.add("版本号: " + QHVCSdk.getInstance().getVersion());
+        logList.add("版本号: " + QHVCPlayer.getVersion());
         if (haveAddress) {
             logList.add("播放url: " + url);
         } else {

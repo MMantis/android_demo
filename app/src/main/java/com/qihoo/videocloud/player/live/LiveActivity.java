@@ -369,6 +369,7 @@ public class LiveActivity extends Activity {
             @Override
             public boolean onError(int handle, int what, int extra) {
                 Logger.w(TAG, "onError handle: " + handle + " what: " + what + " extra: " + extra);
+                Toast.makeText(LiveActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
                 return false;
             }
         });
@@ -444,7 +445,7 @@ public class LiveActivity extends Activity {
 
         logList.clear();
 
-        logList.add("版本号: " + QHVCSdk.getInstance().getVersion());
+        logList.add("版本号: " + QHVCPlayer.getVersion());
         if (haveAddress) {
             logList.add("播放url: " + url);
         } else {

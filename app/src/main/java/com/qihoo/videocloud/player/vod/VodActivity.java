@@ -327,6 +327,8 @@ public class VodActivity extends Activity {
                 if (what == IQHVCPlayer.INFO_LIVE_PLAY_START) {
                     long endTick = System.currentTimeMillis();
                     Logger.d(TAG, "livecloud first render use tick: " + (endTick - mBeginTick));
+
+                    printSdkVersion();
                 } else if (what == IQHVCPlayer.INFO_DEVICE_RENDER_ERR) {
                     // err
                     if (Logger.LOG_ENABLE) {
@@ -368,6 +370,8 @@ public class VodActivity extends Activity {
         qhvcPlayer.setOnErrorListener(new IQHVCPlayer.OnErrorListener() {
             @Override
             public boolean onError(int handle, int what, int extra) {
+                Logger.w(TAG, "onError handle: " + handle + " what: " + what + " extra: " + extra);
+                Toast.makeText(VodActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
                 return false;
             }
         });
@@ -492,7 +496,7 @@ public class VodActivity extends Activity {
 
         logList.clear();
 
-        logList.add("版本号: " + QHVCSdk.getInstance().getVersion());
+        logList.add("版本号: " + QHVCPlayer.getVersion());
         logList.add("播放url: " + url);
         logList.add("分辨率: " + videoWidth + "*" + videoHeight);
         logList.add("码率: " + videoBitratePerSecond / 1024 + "k");
@@ -590,7 +594,7 @@ public class VodActivity extends Activity {
         if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this,
-                    new String[] {
+                    new String[]{
                             permission
                     },
                     requestCode);
@@ -602,7 +606,7 @@ public class VodActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-            @NonNull String permissions[], @NonNull int[] grantResults) {
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
         Logger.d(TAG, "onRequestPermissionsResult " + requestCode + " " + Arrays.toString(permissions) + " " + Arrays.toString(grantResults));
         switch (requestCode) {
             case PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE: {
@@ -610,10 +614,14 @@ public class VodActivity extends Activity {
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 }
             }
-                break;
+            break;
 
             default:
                 break;
         }
+    }
+
+    private void printSdkVersion() {
+        Logger.d(TAG, "[player sdk] native: " + ((qhvcPlayer != null) ? ((QHVCPlayer) qhvcPlayer).getNativeVersion() : "") + " java: " + QHVCPlayer.getVersion());
     }
 }

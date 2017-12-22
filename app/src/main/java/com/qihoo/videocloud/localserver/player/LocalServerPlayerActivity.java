@@ -223,7 +223,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         }
 
         VideoItemData o = mPlayList.get(id);
-        String url = LocalServer.getPlayUrl(o.getRid(), o.getUrl());
+        String url = o.getUrl();
         String localServerUrl = LocalServer.getPlayUrl(o.getRid(), url);
 
         Logger.d(TAG, "startPlay index=" + mCurIndex + ", url=" + url + ", localserver_url=" + localServerUrl);

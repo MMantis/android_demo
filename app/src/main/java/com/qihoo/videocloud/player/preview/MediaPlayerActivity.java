@@ -12,6 +12,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloudrefactor.R;
@@ -93,6 +94,14 @@ public class MediaPlayerActivity extends Activity implements SurfaceHolder.Callb
                     long endTick = System.currentTimeMillis();
                     Logger.d(TAG, "system first render use tick: " + (endTick - mBeginTick));
                 }
+                return false;
+            }
+        });
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                Logger.w(TAG, "what: " + what + " extra: " + extra);
+                Toast.makeText(MediaPlayerActivity.this, "error=" + what + " extra=" + extra, Toast.LENGTH_SHORT).show();
                 return false;
             }
         });
