@@ -4,6 +4,8 @@ package com.qihoo.videocloud.player.preview;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.media.TimedMetaData;
+import android.media.TimedText;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,6 +16,7 @@ import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloudrefactor.R;
 
@@ -73,6 +76,8 @@ public class MediaPlayerActivity extends Activity implements SurfaceHolder.Callb
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
+                Logger.d(TAG, "onPrepared. ");
+
                 int videoWidth = mediaPlayer.getVideoWidth();
                 int videoHeight = mediaPlayer.getVideoHeight();
 
@@ -84,6 +89,24 @@ public class MediaPlayerActivity extends Activity implements SurfaceHolder.Callb
                 mSurfaceView.setLayoutParams(lp);
 
                 start();
+            }
+        });
+        mMediaPlayer.setOnVideoSizeChangedListener(new MediaPlayer.OnVideoSizeChangedListener() {
+            @Override
+            public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
+                Logger.d(TAG, "onVideoSizeChanged. width: " + width + " height: " + height);
+            }
+        });
+        mMediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
+            @Override
+            public void onBufferingUpdate(MediaPlayer mp, int percent) {
+                Logger.d(TAG, "onBufferingUpdate. percent: " + percent);
+            }
+        });
+        mMediaPlayer.setOnTimedMetaDataAvailableListener(new MediaPlayer.OnTimedMetaDataAvailableListener() {
+            @Override
+            public void onTimedMetaDataAvailable(MediaPlayer mp, TimedMetaData data) {
+                Logger.d(TAG, "onTimedMetaDataAvailable. data: " + new Gson().toJson(data));
             }
         });
         mMediaPlayer.setOnInfoListener(new MediaPlayer.OnInfoListener() {
@@ -108,6 +131,7 @@ public class MediaPlayerActivity extends Activity implements SurfaceHolder.Callb
         mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
+                Logger.d(TAG, "onCompletion. ");
                 stopTimer();
             }
         });

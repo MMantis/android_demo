@@ -41,6 +41,10 @@ public class LocalServerSettingActivity extends BaseLocalServerActivity implemen
 
         findViewById(R.id.download_manager).setOnClickListener(this);
         findViewById(R.id.clear_cache).setOnClickListener(this);
+
+        Switch toggleEnableP2PInPlayer = (Switch) findViewById(R.id.toggle_enable_p2p_in_player);
+        toggleEnableP2PInPlayer.setChecked(LocalServerSettingConfig.ENABLE_P2P_IN_PLAYER);
+        toggleEnableP2PInPlayer.setOnCheckedChangeListener(this);
     }
 
     @Override
@@ -71,6 +75,10 @@ public class LocalServerSettingActivity extends BaseLocalServerActivity implemen
             }
             case R.id.toggle_enable_cache: {
                 LocalServerSettingConfig.ENABLE_CACHE_WHEN_PAUSE = isChecked;
+                break;
+            }
+            case R.id.toggle_enable_p2p_in_player: {
+                LocalServerSettingConfig.ENABLE_P2P_IN_PLAYER = isChecked;
                 break;
             }
         }

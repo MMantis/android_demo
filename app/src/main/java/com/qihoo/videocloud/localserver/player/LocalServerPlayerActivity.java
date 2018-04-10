@@ -1,8 +1,12 @@
 
 package com.qihoo.videocloud.localserver.player;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Vibrator;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
@@ -10,6 +14,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -17,7 +22,9 @@ import android.widget.Toast;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.qihoo.livecloud.play.callback.PlayerCallback;
+import com.qihoo.livecloud.sdk.QHVCSdk;
 import com.qihoo.livecloud.tools.Logger;
+import com.qihoo.livecloud.tools.NetUtil;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.IQHVCPlayer;
 import com.qihoo.videocloud.IQHVCPlayerAdvanced;
@@ -28,6 +35,7 @@ import com.qihoo.videocloud.localserver.download.DownloadManager;
 import com.qihoo.videocloud.localserver.download.DownloadTask;
 import com.qihoo.videocloud.localserver.download.LocalServerDownloadActivity;
 import com.qihoo.videocloud.localserver.setting.LocalServerSettingConfig;
+import com.qihoo.videocloud.player.LogAdapter;
 import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.NoDoubleClickListener;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
@@ -56,6 +64,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
     private ArrayList<VideoItemData> mPlayList;
     private int mCurIndex;
     private int mInitPlayPos = 0;
+    private boolean mErrorOccurred = false;
 
     private ViewHeader mHeaderView;
     private ViewPager mViewPager;
@@ -67,6 +76,22 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
     private ImageView mPauseView;
     private View mHelpView;
 
+    private ListView mLogListView;
+    private LogAdapter logAdapter;
+    private List<String> logList = new ArrayList<>();
+
+    private int videoWidth;
+    private int videoHeight;
+    private long downloadBitratePerSecond;//下行码率
+    private long videoBitratePerSecond;// 视频码率
+    private long videoFrameRatePerSecond;//视频帧率
+    private String[] mResids = new String[2];
+    private String[] mPlayerUrls = new String[2];
+    private int mCurrentRes = 0;
+    private Handler mHandler;
+
+    private Vibrator mVibrator;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
@@ -77,6 +102,8 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
 
         initData(getIntent().getExtras());
         initView();
+
+        mHandler = new Handler(Looper.getMainLooper());
 
         startPlay(mCurIndex, mInitPlayPos);
     }
@@ -193,6 +220,41 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         } else {
             QHVCSharedPreferences.getInstence().putBooleanValue("localserver_player_scroll_help_show", true);
         }
+
+        mLogListView = (ListView) findViewById(R.id.lv_log);
+
+        logAdapter = new LogAdapter(this, logList, R.color.white);
+        mLogListView.setAdapter(logAdapter);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mLiveCloudPlayer != null) {
+            try {
+                mLiveCloudPlayer.disableRender(false);
+            } catch (IllegalStateException e) {
+                Logger.e(TAG, e.getMessage());
+            }
+        }
+        if (mTextureView != null) {
+            mTextureView.resumeSurface();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mLiveCloudPlayer != null) {
+            try {
+                mLiveCloudPlayer.disableRender(true);
+            } catch (IllegalStateException e) {
+                Logger.e(TAG, e.getMessage());
+            }
+        }
+        if (mTextureView != null) {
+            mTextureView.pauseSurface();
+        }
     }
 
     @Override
@@ -202,6 +264,11 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
 
         if (!mInstanceStateSaved) {
             mImageLoader.stop();
+        }
+
+        if (mVibrator != null) {
+            mVibrator.cancel();
+            mVibrator = null;
         }
         stopPlay();
     }
@@ -225,6 +292,10 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         VideoItemData o = mPlayList.get(id);
         String url = o.getUrl();
         String localServerUrl = LocalServer.getPlayUrl(o.getRid(), url);
+        mPlayerUrls[0] = localServerUrl;
+        mPlayerUrls[1] = "http://video.mp.sj.360.cn/vod_zhushou/vod-shouzhu-bj/1f212d18f71c15a07414de5ae49acb22.mp4";
+        mResids[0] = o.getRid();
+        mResids[1] = "ecb3cf59e32aa08b9f2be02682dedc48";
 
         Logger.d(TAG, "startPlay index=" + mCurIndex + ", url=" + url + ", localserver_url=" + localServerUrl);
 
@@ -232,6 +303,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         LocalServer.enableCache(true);
 
         mLiveCloudPlayer = new QHVCPlayer(this);
+        mLiveCloudPlayer.enableP2P(LocalServerSettingConfig.ENABLE_P2P_IN_PLAYER);
         mTextureView.onPlay();
         mTextureView.setPlayer(mLiveCloudPlayer);
         mLiveCloudPlayer.setDisplay(mTextureView);
@@ -240,7 +312,16 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
             //QHVCSdkConfig qhvcSdkConfig = QHVCSdk.getInstance().getConfig();
             Map<String, Object> options = new HashMap<>();
             options.put(IQHVCPlayerAdvanced.KEY_OPTION_POSITION, initPlayPos);
-            mLiveCloudPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, localServerUrl, "qvod_demo_q1", "", options);
+            //options.put(IQHVCPlayerAdvanced.KEY_OPTION_P2P_ENABLE_UPLOAD, true);
+
+            mLiveCloudPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD,
+                    mResids,
+                    mPlayerUrls,
+                    0,
+                    getResources().getString(R.string.config_cid),
+                    "",
+                    options);
+
         } catch (Exception e) {
             Logger.e(TAG, e.getMessage());
             Toast.makeText(this, "数据源异常", Toast.LENGTH_SHORT).show();
@@ -310,6 +391,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
             @Override
             public boolean onError(int handle, int what, int extra) {
                 Toast.makeText(LocalServerPlayerActivity.this, "播放失败：what=" + what + ", extra=" + extra, Toast.LENGTH_SHORT).show();
+                mErrorOccurred = true;
                 return false;
             }
         });
@@ -320,6 +402,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
                 mSeekBar.setProgress((progress * 100) / total);
                 mCurrTimeTextView.setText(AndroidUtil.getTimeString(progress));
                 mTotalTimeTextView.setText(AndroidUtil.getTimeString(total));
+                showLog();
             }
         });
 
@@ -335,7 +418,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         mLiveCloudPlayer.setOnCompletionListener(new IQHVCPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(int handle) {
-                if (mLiveCloudPlayer != null) {
+                if (mLiveCloudPlayer != null && !mErrorOccurred) {
                     mLiveCloudPlayer.seekTo(0);
                 }
             }
@@ -343,9 +426,21 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         mLiveCloudPlayer.setOnVideoSizeChangedListener(new IQHVCPlayer.OnVideoSizeChangedListener() {
             @Override
             public void onVideoSizeChanged(int handle, int width, int height) {
-                if(mTextureView != null){
+                videoWidth = width;
+                videoHeight = height;
+
+                if (mTextureView != null) {
                     mTextureView.setVideoRatio((float) width / (float) height);
                 }
+            }
+        });
+
+        mLiveCloudPlayer.setOnPlayerNetStatsListener(new IQHVCPlayerAdvanced.OnPlayerNetStatsListener() {
+            @Override
+            public void onPlayerNetStats(int handle, long dvbps, long dabps, long dvfps, long dafps, long fps, long bitrate, long param1, long param2, long param3) {
+                downloadBitratePerSecond = dvbps + dabps;
+                videoBitratePerSecond = bitrate;
+                videoFrameRatePerSecond = fps;
             }
         });
 
@@ -355,6 +450,10 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
             Logger.e(TAG, e.getMessage());
             Toast.makeText(this, "prepareAsync 异常", Toast.LENGTH_SHORT).show();
             return;
+        }
+
+        if (mCurIndex == 0) {
+            mHandler.postDelayed(mSwtichResolution, 20000);
         }
 
         preCache();
@@ -375,7 +474,10 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
             mLiveCloudPlayer.stop();
             mLiveCloudPlayer.release();
             mLiveCloudPlayer = null;
+
+            mHandler.removeCallbacks(mSwtichResolution);
         }
+        mErrorOccurred = false;
 
         LocalServer.enableCache(LocalServerSettingConfig.ENABLE_CACHE_WHEN_PAUSE);
     }
@@ -489,7 +591,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
         public int getCount() {
             if (mImageViews == null) {
                 return 0;
-        }
+            }
             return mImageViews.length;
         }
 
@@ -511,4 +613,95 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
             return mImageViews[position % mImageViews.length];
         }
     }
+
+    private void showLog() {
+        Map<String, Object> mediaInformationMap = mLiveCloudPlayer != null ? mLiveCloudPlayer.getMediaInformation() : null;
+
+        logList.clear();
+
+        if (mVibrator == null) {
+            mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        }
+
+        logList.add("版本号: " + QHVCSdk.getInstance().getVersion());
+        String url = mPlayerUrls[mCurrentRes];
+        if (mediaInformationMap.containsKey(QHVCPlayer.KEY_MEDIA_INFO_REAL_URL_STRING)) {
+            url = (String) mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_REAL_URL_STRING);
+        }
+        logList.add("播放url: " + url);
+        logList.add("分辨率: " + videoWidth + "*" + videoHeight);
+        logList.add("码率: " + videoBitratePerSecond / 1024 + "k");
+        logList.add("帧率: " + videoFrameRatePerSecond);
+        if (mediaInformationMap != null && !mediaInformationMap.isEmpty()) {
+            logList.add("音频格式: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_FORMAT_STRING));
+            logList.add("音频采样率: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_SAMPLE_RATE_INT));
+            logList.add("音频轨道: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_CHANNEL_INT));
+            logList.add("视频编码格式: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_VIDEO_FORMAT_STRING));
+        } else {
+            logList.add("音频格式: ");
+            logList.add("音频采样率: ");
+            logList.add("音频轨道: ");
+            logList.add("视频编码格式: ");
+        }
+        logList.add("Player下行流量: " + downloadBitratePerSecond / 1024 + "k");
+
+        if (mediaInformationMap.containsKey(QHVCPlayer.KEY_MEDIA_INFO_P2P_DOWNLOAD_SPEED_LONG)) {
+            long p2pDownSpeed = (long) mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_P2P_DOWNLOAD_SPEED_LONG) / 1024;
+            logList.add("P2P下载数据: " + p2pDownSpeed + "k");
+            if (p2pDownSpeed > 0) {
+                long[] pattern = {
+                        500, 1000, 500, 1000
+                }; // 停止 开启 停止 开启
+                mVibrator.vibrate(pattern, -1);
+            } else {
+                mVibrator.cancel();
+            }
+        }
+
+        if (mediaInformationMap.containsKey(QHVCPlayer.KEY_MEDIA_INFO_CDN_DOWNLOAD_SPEED_LONG)) {
+            long cdnDownSpeed = (long) mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_CDN_DOWNLOAD_SPEED_LONG) / 1024;
+            logList.add("CDN下载数据: " + cdnDownSpeed + "k");
+        }
+
+        logList.add("网络类型: " + NetUtil.getNetWorkTypeToString(this));
+
+        logAdapter.setList(logList);
+        logAdapter.notifyDataSetChanged();
+    }
+
+    Runnable mSwtichResolution = new Runnable() {
+        @Override
+        public void run() {
+            mLiveCloudPlayer.switchResolution(1, new IQHVCPlayerAdvanced.QHVCSwitchResolutionListener() {
+                @Override
+                public void onPrepare() {
+                }
+
+                @Override
+                public void onStart() {
+                }
+
+                @Override
+                public void onSuccess(final int index, final String url) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCurrentRes = index;
+                            Toast.makeText(LocalServerPlayerActivity.this, "切换分辨率成功", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(final int errorCode, final String errorMsg) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(LocalServerPlayerActivity.this, "切换分辨率失败", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+        }
+    };
 }

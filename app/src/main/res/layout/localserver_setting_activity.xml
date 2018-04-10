@@ -71,6 +71,20 @@
 
             <View style="@style/switch_line_style" />
 
+
+            <View style="@style/switch_line_style" />
+
+            <RelativeLayout style="@style/switch_bg_style">
+
+                <TextView
+                    style="@style/switch_text_style"
+                    android:text="启用播放器中的P2P功能" />
+
+                <Switch
+                    android:id="@+id/toggle_enable_p2p_in_player"
+                    style="@style/switch_toggle_style" />
+            </RelativeLayout>
+
             <RelativeLayout
                 android:id="@+id/download_manager"
                 style="@style/switch_bg_style">

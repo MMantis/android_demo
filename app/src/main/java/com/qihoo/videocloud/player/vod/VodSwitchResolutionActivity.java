@@ -31,9 +31,9 @@ import java.util.List;
 public class VodSwitchResolutionActivity extends Activity {
     private final static String TAG = VodSwitchResolutionActivity.class.getSimpleName();
 
-    private String SN_360x640 = "http://q3.v.k.360kan.com/vod-xinxiliu-tv-q3-bj/15726_632071bae2f98-5190-4a82-be2a-23772d9583b0.mp4";
-    private String SN_720x1280 = "http://q3.v.k.360kan.com/vod-xinxiliu-tv-q3-bj/15726_632084cad6efa-eb1f-41c0-a1f5-f2ea5000d75e.mp4";
-    private String SN_1080x1920 = "http://q3.v.k.360kan.com/vod-xinxiliu-tv-q3-bj/15726_63210ceb9d88b-5bab-4051-b6dc-a37669b4d5d5.mp4";
+    private String SN_1080x1920 = "http://yunxianchang.live.ujne7.com/vod-system-bj/106692792_2_mp4-1522376285-52f7d75e-10cd-063f.mp4";
+    private String SN_720x1280 = "http://yunxianchang.live.ujne7.com/vod-system-bj/106692792_1_mp4-1522376285-a07803a8-4f6f-d0ee.mp4";
+    private String SN_360x640 = "http://yunxianchang.live.ujne7.com/vod-system-bj/106692792_0_mp4-1522376285-6dc7d759-0fff-2b06.mp4";
 
     //    private String SN_360x640 = "http://q3.v.k.360kan.com/vod-xinxiliu-tv-q3-bj/15984_64239be089746-79f8-4b53-afb7-ab82cd0b7a01.mp4";
     //    private String SN_720x1280 = "http://q3.v.k.360kan.com/vod-xinxiliu-tv-q3-bj/15984_64240ef08b20d-4e0e-44c2-94b5-d80a7bbed1dc.mp4";
@@ -47,6 +47,7 @@ public class VodSwitchResolutionActivity extends Activity {
     };
 
     boolean mIsSpinnerFirst = true;
+    int mLastSwitchSuccessSourceIndex = 0;
     Spinner mSpinnerResolution;
     TextView mTvResolution;
     SeekBar mSbPlayProgress;
@@ -59,12 +60,13 @@ public class VodSwitchResolutionActivity extends Activity {
 
     private int mProgress;
     private int mVolume;
+    private float mPlaybackRate = 1.0f;
 
-    private boolean mSwitchResolutionSuccessUpdateSpinner = false;
+    private boolean mJustUpdateSpinner = false;
     IQHVCPlayerAdvanced.QHVCSwitchResolutionListener switchResolutionListener = new IQHVCPlayerAdvanced.QHVCSwitchResolutionListener() {
         @Override
         public void onPrepare() {
-            Logger.e(TAG, "[auto] switch prepare...");
+            Logger.e(TAG, "switch prepare...");
         }
 
         @Override
@@ -85,11 +87,12 @@ public class VodSwitchResolutionActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(VodSwitchResolutionActivity.this, "[auto] switch success: " + SN_SOURCE[index], Toast.LENGTH_SHORT).show();
+                    Toast.makeText(VodSwitchResolutionActivity.this, "switch success: " + SN_SOURCE[index], Toast.LENGTH_SHORT).show();
                     mTvResolution.setText(SN_SOURCE_FLAG[index]);
 
-                    mSwitchResolutionSuccessUpdateSpinner = true;
+                    mJustUpdateSpinner = true;
                     mSpinnerResolution.setSelection(index);
+                    mLastSwitchSuccessSourceIndex = index;
 
                     if (mProgressDialog != null && mProgressDialog.isShowing()) {
                         mProgressDialog.dismiss();
@@ -103,10 +106,15 @@ public class VodSwitchResolutionActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(VodSwitchResolutionActivity.this, "[auto] switch error: " + errorCode + " " + errorMsg, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(VodSwitchResolutionActivity.this, "switch error: " + errorCode + " " + errorMsg, Toast.LENGTH_SHORT).show();
                     if (mProgressDialog != null && mProgressDialog.isShowing()) {
                         mProgressDialog.dismiss();
                     }
+
+                    // 切换失败
+                    mJustUpdateSpinner = false;
+                    mSpinnerResolution.setSelection(mLastSwitchSuccessSourceIndex);
+                    mTvResolution.setText(SN_SOURCE_FLAG[mLastSwitchSuccessSourceIndex]);
                 }
             });
         }
@@ -207,6 +215,37 @@ public class VodSwitchResolutionActivity extends Activity {
             }
         });
 
+        findViewById(R.id.btn_playback_rate_sub).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (iqhvcPlayer != null && (iqhvcPlayer.isPlaying() || iqhvcPlayer.isPaused())) {
+
+                    if (mPlaybackRate >= (QHVCPlayer.PLAYBACK_RATE_DEFAULT - QHVCPlayer.FLOAT_EPSINON)) {
+                        mPlaybackRate -= 0.5f;
+                        iqhvcPlayer.setPlayBackRate(mPlaybackRate);
+
+                        Toast.makeText(VodSwitchResolutionActivity.this, "set playback rate: " + mPlaybackRate, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(VodSwitchResolutionActivity.this, "not set. current playback rate: " + mPlaybackRate, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+
+        findViewById(R.id.btn_playback_rate_add).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (iqhvcPlayer != null && (iqhvcPlayer.isPlaying() || iqhvcPlayer.isPaused())) {
+
+                    mPlaybackRate += 0.5f;
+                    iqhvcPlayer.setPlayBackRate(mPlaybackRate);
+
+                    Toast.makeText(VodSwitchResolutionActivity.this, "set playback rate: " + mPlaybackRate, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+
         mSbPlayProgress = (SeekBar) findViewById(R.id.sb_play_progress);
         mSbPlayProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -253,8 +292,8 @@ public class VodSwitchResolutionActivity extends Activity {
                     return;
                 }
 
-                if (mSwitchResolutionSuccessUpdateSpinner) {
-                    mSwitchResolutionSuccessUpdateSpinner = false;
+                if (mJustUpdateSpinner) {
+                    mJustUpdateSpinner = false;
                     Logger.e(TAG, "just update spinner.");
                     return;
                 }
@@ -418,6 +457,11 @@ public class VodSwitchResolutionActivity extends Activity {
         iqhvcPlayer.setOnErrorListener(new IQHVCPlayer.OnErrorListener() {
             @Override
             public boolean onError(int handle, int what, int extra) {
+
+                Logger.d(TAG, "onError. what: " + what + " extra: " + extra);
+                Toast.makeText(VodSwitchResolutionActivity.this, "onError. what: " + what + " extra: " + extra, Toast.LENGTH_SHORT).show();
+                stopPlay();
+                finish();
                 return false;
             }
         });

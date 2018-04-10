@@ -50,6 +50,8 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
     private List<VideoItemData> mObjects;
     private IQHVCPlayerAdvanced mQHVCPlayer;
 
+    private boolean mErrorOccurred = false;
+
     // current play view
     private volatile int mCurIndex = -1;
     private volatile QHVCTextureView mCurPlayView;
@@ -331,7 +333,7 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
         mQHVCPlayer.setSurfaceViewport(0, 0, playView.getWidth(), playView.getHeight());
         try {
             Map<String, Object> options = new HashMap<>();
-            mQHVCPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, new String[]{resId}, new String[]{ newUrl}, 0, mCid, "",options);
+            mQHVCPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, new String[]{resId}, new String[]{newUrl}, 0, mCid, "", options);
         } catch (Exception e) {
             Logger.e(TAG, e.getMessage());
             Toast.makeText(mContext, "数据源异常", Toast.LENGTH_SHORT).show();
@@ -386,6 +388,7 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
             @Override
             public boolean onError(int handle, int what, int extra) {
                 Toast.makeText(mContext, "播放失败：what=" + what + ", extra=" + extra, Toast.LENGTH_SHORT).show();
+                mErrorOccurred = true;
                 return false;
             }
         });
@@ -416,7 +419,7 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
             public void onCompletion(int handle) {
                 if (mCurIndex >= 0 && mCurIndex < mObjects.size()) {
 
-                    if (mQHVCPlayer != null) {
+                    if (mQHVCPlayer != null && !mErrorOccurred) {
                         mQHVCPlayer.seekTo(0);
                     }
                 }
@@ -462,6 +465,8 @@ public class LocalServerVideoListAdapter extends BaseAdapter {
         mCurIndex = -1;
         mCurViewHolder = null;
         mCurPlayView = null;
+
+        mErrorOccurred = false;
         return currentPos;
     }
 

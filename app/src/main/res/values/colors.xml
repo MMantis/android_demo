@@ -24,4 +24,6 @@
 
     <color name="switch_bg_normal">#ffffff</color>
     <color name="switch_bg_press">#14000000</color>
+
+    <color name="change_speed_textclour">#57B0F6</color>
 </resources>

@@ -17,6 +17,7 @@ import android.widget.TextView;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.debug.SettingActivity;
 import com.qihoo.videocloud.localserver.LocalServerActivity;
+import com.qihoo.videocloud.p2p.P2PActivity;
 import com.qihoo.videocloud.player.PlaySelectActivity;
 import com.qihoo.videocloud.recorder.PrepareRecordActivity;
 import com.qihoo.videocloud.recorderlocal.PrepareRecordLocalActivity;
@@ -44,7 +45,8 @@ public class NavigationActivity extends Activity {
             R.drawable.icon_localserver,
             //            R.drawable.icon_mic,
             //            R.drawable.icon_clip,
-            R.drawable.icon_take_photo
+            R.drawable.icon_take_photo,
+            R.drawable.icon_p2p
     };
     private final String[] textArray = {
             "推流",
@@ -53,7 +55,8 @@ public class NavigationActivity extends Activity {
             "本地缓存",
             //            "连麦",
             //            "裁剪",
-            "拍摄"
+            "拍摄",
+            "P2P"
     };
     private final Class<?>[] jumpArray = {
             PrepareRecordActivity.class,
@@ -62,7 +65,8 @@ public class NavigationActivity extends Activity {
             LocalServerActivity.class,
             //            null,
             //            null,
-            PrepareRecordLocalActivity.class
+            PrepareRecordLocalActivity.class,
+            P2PActivity.class,
     };
 
     @Override

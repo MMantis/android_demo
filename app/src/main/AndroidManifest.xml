@@ -29,6 +29,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <!-- android:supportsRtl="true" -->
     <application
@@ -159,6 +160,23 @@
             android:name="com.qihoo.videocloud.player.vod.VodSwitchResolutionActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar" />
+
+        <!--LocalServer-->
+        <activity
+            android:name="com.qihoo.videocloud.p2p.P2PActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.NoTitleBar" />
+        <activity
+            android:name="com.qihoo.videocloud.p2p.player.P2PPlayerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.NoTitleBar" />
+        <activity
+            android:name="com.qihoo.videocloud.p2p.setting.P2PSettingActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar" />
     </application>
 

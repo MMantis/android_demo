@@ -18,11 +18,14 @@ import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -30,10 +33,10 @@ import android.widget.Toast;
 
 import com.qihoo.livecloud.play.GifRecordConfig;
 import com.qihoo.livecloud.play.callback.PlayerCallback;
-import com.qihoo.livecloud.plugin.ILiveCloudPlugin;
 import com.qihoo.livecloud.sdk.QHVCSdk;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.NetUtil;
+import com.qihoo.livecloud.utils.PlayerLogger;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.IQHVCPlayer;
 import com.qihoo.videocloud.IQHVCPlayerAdvanced;
@@ -59,7 +62,7 @@ import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
 import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
 import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
 
-public class VodActivity extends Activity {
+public class VodActivity extends Activity implements View.OnClickListener{
 
     private static final String TAG = VodActivity.class.getSimpleName();
     private static final int PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE = 1000;
@@ -98,11 +101,30 @@ public class VodActivity extends Activity {
 
     private long mBeginTick;
 
+    private PopupWindow mChangeSpeedPopWindow;
+    private PopupWindow mResolutionRatioPopWindow;
+    private TextView speed1_0;
+    private TextView speed1_5;
+    private TextView speed2_0;
+    private TextView resolutionRatio;
+    private ImageView changeSpeed;
+    private TextView resoulution_1080p;
+    private TextView resoulution_720p;
+    private TextView resoulution_480p;
+    private TextView resoulution_320p;
+    private TextView mChangeMessage;
+    private String SN_1080P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_4_mp4-1516589235-1c953617-e268-c0a8.mp4";
+    private String SN_720P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_2_mp4-1516589235-b10eb2c4-a8be-b6c6.mp4";
+    private String SN_480P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_1_mp4-1516589235-622a3f1d-c62b-9c41.mp4";
+    private String SN_360P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_0_mp4-1516589235-6cbce4d1-614c-7059.mp4";
+    private String[] SN_SOURCE = {SN_1080P, SN_720P, SN_480P,SN_360P};
+    private String[] SN_SOURCE_FLAG = {"1080P", "超清", "高清","标清"};
+    private float[] mPlayRate = {1f, 1.5f, 2f,};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        hideSystemNavigationBar();
+//        hideSystemNavigationBar();
         super.onCreate(savedInstanceState);
 
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -208,6 +230,8 @@ public class VodActivity extends Activity {
 
                             currentShowModel = SHOW_MODEL_LAND;
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                            resolutionRatio.setVisibility(View.VISIBLE);
+                            changeSpeed.setVisibility(View.VISIBLE);
                         }
                     } else {
 
@@ -225,6 +249,11 @@ public class VodActivity extends Activity {
                 // SHOW_MODEL_PORT have not zoom
             }
         });
+        resolutionRatio = (TextView) findViewById(R.id.resolution_ratio);
+        resolutionRatio.setOnClickListener(this);
+        changeSpeed = (ImageView) findViewById(R.id.change_speed);
+        changeSpeed.setOnClickListener(this);
+        mChangeMessage = (TextView) findViewById(R.id.vod_changeMessage);
     }
 
     private void vodProxy() {
@@ -243,7 +272,7 @@ public class VodActivity extends Activity {
                 Toast.makeText(this, "播放器插件加载失败" + "(" + result + ")", Toast.LENGTH_SHORT).show();
             }
         } else {
-            qhvcPlayerPlugin.checkInstallOrUpdatePlugin(this, new ILiveCloudPlugin.PluginCallback() {
+            qhvcPlayerPlugin.checkInstallPlugin(this, new QHVCPlayerPlugin.PluginCallback() {
                 @Override
                 public void onStart(Context context) {
                     Toast.makeText(context, "开始下载播放器插件", Toast.LENGTH_SHORT).show();
@@ -297,7 +326,16 @@ public class VodActivity extends Activity {
             } else {
                 options.put(IQHVCPlayerAdvanced.KEY_OPTION_DECODE_MODE, IQHVCPlayerAdvanced.LIVECLOUD_SOFT_DECODE_MODE);
             }
-            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, url, channelId, "", options);
+//            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, url, channelId, "", options);
+            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD,
+                    new String[] {
+                            "resId0", "resId1", "resId2","resId3"
+                    },
+                    SN_SOURCE,
+                    2,
+                    getResources().getString(R.string.config_cid),
+                    "",
+                    options);
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
             Toast.makeText(this, "数据源异常", Toast.LENGTH_SHORT).show();
@@ -313,6 +351,7 @@ public class VodActivity extends Activity {
         qhvcPlayer.setOnVideoSizeChangedListener(new IQHVCPlayer.OnVideoSizeChangedListener() {
             @Override
             public void onVideoSizeChanged(int handle, int width, int height) {
+                Logger.w(TAG, "onInfo width: " + width + " ------height: " + height);
                 videoWidth = width;
                 videoHeight = height;
                 if (playView != null) {
@@ -417,7 +456,13 @@ public class VodActivity extends Activity {
         qhvcPlayer.setOnBufferingUpdateListener(new IQHVCPlayer.OnBufferingUpdateListener() {
             @Override
             public void onBufferingUpdate(int handle, int percent) {
-                Log.w(TAG, "buffering: " + percent + " volume: " + qhvcPlayer.getVolume());
+                Log.d(TAG, "buffering: " + percent + " volume: " + qhvcPlayer.getVolume());
+            }
+        });
+        qhvcPlayer.setOnSeekCompleteListener(new IQHVCPlayer.OnSeekCompleteListener() {
+            @Override
+            public void onSeekComplete(int handle) {
+                Log.d(TAG, "onSeekComplete");
             }
         });
 
@@ -448,6 +493,8 @@ public class VodActivity extends Activity {
         //        lvLog.setPadding(30, 140, 0, 0);
         logAdapter.setTextColorResId(R.color.white);
         logAdapter.notifyDataSetChanged();
+        resolutionRatio.setVisibility(View.VISIBLE);
+        changeSpeed.setVisibility(View.VISIBLE);
     }
 
     // 纵向显示-- 缩小
@@ -474,6 +521,8 @@ public class VodActivity extends Activity {
         //        lvLog.setPadding(0, 0, 0, 0);
         logAdapter.setTextColorResId(R.color.color_666666);
         logAdapter.notifyDataSetChanged();
+        resolutionRatio.setVisibility(View.GONE);
+        changeSpeed.setVisibility(View.GONE);
     }
 
     @Override
@@ -498,10 +547,12 @@ public class VodActivity extends Activity {
 
         logList.add("版本号: " + QHVCPlayer.getVersion());
         logList.add("播放url: " + url);
-        logList.add("分辨率: " + videoWidth + "*" + videoHeight);
-        logList.add("码率: " + videoBitratePerSecond / 1024 + "k");
-        logList.add("帧率: " + videoFrameRatePerSecond);
         if (mediaInformationMap != null && !mediaInformationMap.isEmpty()) {
+            logList.add("分辨率: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_VIDEO_WIDTH_INT) + "*" + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_VIDEO_HEIGHT_INT));
+            Logger.w(TAG, "-----with: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_VIDEO_WIDTH_INT) +
+                    "----- height: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_VIDEO_HEIGHT_INT));
+            logList.add("码率: " + videoBitratePerSecond / 1024 + "k");
+            logList.add("帧率: " + videoFrameRatePerSecond);
             logList.add("音频格式: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_FORMAT_STRING));
             logList.add("音频采样率: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_SAMPLE_RATE_INT));
             logList.add("音频轨道: " + mediaInformationMap.get(QHVCPlayer.KEY_MEDIA_INFO_AUDIO_CHANNEL_INT));
@@ -517,6 +568,22 @@ public class VodActivity extends Activity {
 
         logAdapter.setList(logList);
         logAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (qhvcPlayer != null && (qhvcPlayer.isPlaying() || qhvcPlayer.isPaused())) {
+            qhvcPlayer.disableRender(false);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (qhvcPlayer != null && (qhvcPlayer.isPlaying() || qhvcPlayer.isPaused())) {
+            qhvcPlayer.disableRender(true);
+        }
     }
 
     @Override
@@ -622,6 +689,193 @@ public class VodActivity extends Activity {
     }
 
     private void printSdkVersion() {
-        Logger.d(TAG, "[player sdk] native: " + ((qhvcPlayer != null) ? ((QHVCPlayer) qhvcPlayer).getNativeVersion() : "") + " java: " + QHVCPlayer.getVersion());
+        if (qhvcPlayer instanceof QHVCPlayer) {
+            Logger.d(TAG, "[player sdk] native: " + ((qhvcPlayer != null) ? ((QHVCPlayer) qhvcPlayer).getNativeVersion() : "") + " java: " + QHVCPlayer.getVersion());
+        }
+    }
+
+    private void  init(){
+
+    }
+
+    /**
+     * 显示倍速PopWindow
+     */
+    private void showChangeSpeedPopWindow() {
+        if (mChangeSpeedPopWindow == null) {
+            View popView = LayoutInflater.from(this).inflate(R.layout.activity_vod_change_speedlayout, null);
+            initChangeSpeedPopWindowView(popView);
+            mChangeSpeedPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
+            mChangeSpeedPopWindow.setOutsideTouchable(true);
+            mChangeSpeedPopWindow.setFocusable(true);
+            mChangeSpeedPopWindow.setTouchable(true);
+            mChangeSpeedPopWindow.setAnimationStyle(R.style.popupWindowAnimation);
+            mChangeSpeedPopWindow.showAtLocation(playView, Gravity.CENTER, 0, 0);
+            mChangeSpeedPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                }
+            });
+        } else {
+            if (!mChangeSpeedPopWindow.isShowing()) {
+                mChangeSpeedPopWindow.showAtLocation(playView, Gravity.CENTER, 0, 0);
+            } else {
+                mChangeSpeedPopWindow.dismiss();
+            }
+        }
+    }
+
+    private void initChangeSpeedPopWindowView(View popView){
+        speed1_0 = (TextView) popView.findViewById(R.id.vod_speed_1_0);
+        speed1_0.setOnClickListener(this);
+        speed1_5 = (TextView) popView.findViewById(R.id.vod_speed_1_5);
+        speed1_5.setOnClickListener(this);
+        speed2_0 = (TextView) popView.findViewById(R.id.vod_speed_2_0);
+        speed2_0.setOnClickListener(this);
+        speed1_0.setTextColor(getResources().getColor(R.color.change_speed_textclour));
+    }
+
+    /**
+     * 显示切换分辨率PopWindow
+     */
+    private void showResolutionRatioPopWindow() {
+        if (mResolutionRatioPopWindow == null) {
+            View popView = LayoutInflater.from(this).inflate(R.layout.activity_vod_resolution_ratio_layout, null);
+            initResolutionRatioPopWindowView(popView);
+            mResolutionRatioPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
+            mResolutionRatioPopWindow.setOutsideTouchable(true);
+            mResolutionRatioPopWindow.setFocusable(true);
+            mResolutionRatioPopWindow.setTouchable(true);
+            mResolutionRatioPopWindow.setAnimationStyle(R.style.popupWindowAnimation);
+            mResolutionRatioPopWindow.showAtLocation(playView, Gravity.CENTER, 0, 0);
+            mResolutionRatioPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                }
+            });
+            resolutionRatio.setText("高清");
+        } else {
+            if (!mResolutionRatioPopWindow.isShowing()) {
+                mResolutionRatioPopWindow.showAtLocation(playView, Gravity.CENTER, 0, 0);
+            } else {
+                mResolutionRatioPopWindow.dismiss();
+            }
+        }
+    }
+
+    private void initResolutionRatioPopWindowView(View popView){
+        resoulution_1080p = (TextView) popView.findViewById(R.id.resoulution_1080p);
+        resoulution_1080p.setOnClickListener(this);
+        resoulution_720p = (TextView) popView.findViewById(R.id.resoulution_720p);
+        resoulution_720p.setOnClickListener(this);
+        resoulution_480p = (TextView) popView.findViewById(R.id.resoulution_480p);
+        resoulution_480p.setOnClickListener(this);
+        resoulution_320p = (TextView) popView.findViewById(R.id.resoulution_320p);
+        resoulution_320p.setOnClickListener(this);
+        resoulution_480p.setTextColor(getResources().getColor(R.color.change_speed_textclour));
+    }
+
+    /**
+     * Called when a view has been clicked.
+     *
+     * @param v The view that was clicked.
+     */
+    @Override
+    public void onClick(View v) {
+        switch(v.getId()){
+            case R.id.vod_speed_1_0:
+                setChangeSpeedPopSelect(speed1_0,0);
+                break;
+            case R.id.vod_speed_1_5:
+                setChangeSpeedPopSelect(speed1_5,1);
+                break;
+            case R.id.vod_speed_2_0:
+                setChangeSpeedPopSelect(speed2_0,2);
+                break;
+            case R.id.resolution_ratio:
+                showResolutionRatioPopWindow();
+                break;
+            case R.id.change_speed:
+                showChangeSpeedPopWindow();
+                break;
+            case R.id.resoulution_1080p:
+                setesoulutionRRatioPopSelect(resoulution_1080p,0);
+                break;
+            case R.id.resoulution_720p:
+                setesoulutionRRatioPopSelect(resoulution_720p,1);
+                break;
+            case R.id.resoulution_480p:
+                setesoulutionRRatioPopSelect(resoulution_480p,2);
+                break;
+            case R.id.resoulution_320p:
+                setesoulutionRRatioPopSelect(resoulution_320p,3);
+                break;
+
+
+        }
+
+    }
+
+    private void setChangeSpeedPopSelect(TextView view,int index){
+        speed1_0.setTextColor(getResources().getColor(R.color.white));
+        speed1_5.setTextColor(getResources().getColor(R.color.white));
+        speed2_0.setTextColor(getResources().getColor(R.color.white));
+        view.setTextColor(getResources().getColor(R.color.change_speed_textclour));
+        qhvcPlayer.setPlayBackRate(mPlayRate[index]);
+    }
+    private void setesoulutionRRatioPopSelect(TextView view,int index){
+        resoulution_1080p.setTextColor(getResources().getColor(R.color.white));
+        resoulution_720p.setTextColor(getResources().getColor(R.color.white));
+        resoulution_480p.setTextColor(getResources().getColor(R.color.white));
+        resoulution_320p.setTextColor(getResources().getColor(R.color.white));
+        view.setTextColor(getResources().getColor(R.color.change_speed_textclour));
+        if (qhvcPlayer != null) {
+            if (qhvcPlayer.isPaused()) {
+                qhvcPlayer.start();
+            }
+
+            mChangeMessage.setText(SN_SOURCE_FLAG[index] + " 切换中...");
+            qhvcPlayer.switchResolution(index, new IQHVCPlayerAdvanced.QHVCSwitchResolutionListener() {
+                @Override
+                public void onPrepare() {
+                    Logger.e(TAG, "[hand] switch prepare...");
+                }
+
+                @Override
+                public void onStart() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                        }
+                    });
+                }
+
+                @Override
+                public void onSuccess(final int index, final String url) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(VodActivity.this, "success" , Toast.LENGTH_SHORT).show();
+                            mChangeMessage.setText("");
+                            resolutionRatio.setText(SN_SOURCE_FLAG[index]);
+                            PlayerLogger.i(TAG,"-----index:"+index+"-----url:"+url);
+                            mediaInformationMap = qhvcPlayer.getMediaInformation();
+
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(final int errorCode, final String errorMsg) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mChangeMessage.setText("");
+                            Toast.makeText(VodActivity.this, "error: " + errorCode + " " + errorMsg, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+        }
     }
 }

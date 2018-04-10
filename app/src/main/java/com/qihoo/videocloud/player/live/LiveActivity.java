@@ -19,7 +19,6 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.qihoo.livecloud.play.callback.PlayerCallback;
-import com.qihoo.livecloud.plugin.ILiveCloudPlugin;
 import com.qihoo.livecloud.sdk.QHVCSdk;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.MD5;
@@ -230,7 +229,7 @@ public class LiveActivity extends Activity {
                 Toast.makeText(this, "播放器插件加载失败" + "(" + result + ")", Toast.LENGTH_SHORT).show();
             }
         } else {
-            qhvcPlayerPlugin.checkInstallOrUpdatePlugin(this, new ILiveCloudPlugin.PluginCallback() {
+            qhvcPlayerPlugin.checkInstallPlugin(this, new QHVCPlayerPlugin.PluginCallback() {
                 @Override
                 public void onStart(Context context) {
                     Toast.makeText(context, "开始下载播放器插件", Toast.LENGTH_SHORT).show();

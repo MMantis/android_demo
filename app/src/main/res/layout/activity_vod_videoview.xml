@@ -75,12 +75,30 @@
                 android:layout_width="29.3dp"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:layout_toLeftOf="@+id/iv_zoom"
+                android:layout_toLeftOf="@+id/resolution_ratio"
                 android:gravity="center_vertical"
                 android:textColor="@color/white"
                 android:textSize="10sp" />
 
+                <TextView
+                    android:id="@+id/resolution_ratio"
+                    android:layout_height="match_parent"
+                    android:layout_width="44.3dp"
+                    android:gravity="center"
+                    android:text="高清" />
+            <RelativeLayout
+                android:id="@+id/chang"
+                android:layout_width="44.3dp"
+                android:layout_height="44.6dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:gravity="center">
 
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/zoom_in" />
+            </RelativeLayout>
             <RelativeLayout
                 android:id="@+id/iv_zoom"
                 android:layout_width="44.3dp"

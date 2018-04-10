@@ -75,7 +75,7 @@ public class VodConfigActivity extends Activity implements View.OnClickListener,
     public boolean onLongClick(View view) {
         switch (view.getId()) {
             case R.id.iv_play: {
-                Intent intent = new Intent(VodConfigActivity.this, MediaPlayerActivity.class);
+                Intent intent = new Intent(VodConfigActivity.this, /*MediaPlayerActivity*/VodSwitchResolutionActivity.class);
                 intent.putExtra("url", etUrl.getText().toString().trim());
                 startActivity(intent);
                 return true;

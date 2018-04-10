@@ -21,6 +21,7 @@ import com.qihoo.livecloud.tools.Stats;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.beauty.BeautyHelper;
 import com.qihoo.videocloud.debug.Setting;
+import com.qihoo.videocloud.utils.Utils;
 import com.tencent.bugly.crashreport.CrashReport;
 
 import org.xutils.x;
@@ -44,7 +45,7 @@ public class VideoCloudApplication extends Application {
         useStrictMode();
         x.Ext.init(this);
         x.Ext.setDebug(true); // 是否输出debug日志, 开启debug会影响性能.
-        CrashReport.initCrashReport(getApplicationContext(), "3c9411c88e", true);
+        buglyInit();
         imageLoaderInit();
 
         QHVCSdkInit();
@@ -116,13 +117,25 @@ public class VideoCloudApplication extends Application {
         }
     }
 
+    private void buglyInit() {
+        String packageName = this.getPackageName();
+        String processName = Utils.getProcessName(android.os.Process.myPid());
+
+        CrashReport.UserStrategy strategy = new CrashReport.UserStrategy(this);
+        strategy.setUploadProcess(processName == null || processName.equals(packageName));
+        strategy.setAppChannel("home");
+        strategy.setAppVersion(Utils.getVersionName(this));
+        strategy.setAppPackageName(getPackageName());
+
+        CrashReport.initCrashReport(this, "e3f325ec53", true, strategy);
+    }
+
     private void imageLoaderInit() {
         DisplayImageOptions options = new DisplayImageOptions.Builder()
                 .cacheInMemory(true).cacheOnDisk(true)
                 .bitmapConfig(Bitmap.Config.RGB_565)
                 .imageScaleType(ImageScaleType.IN_SAMPLE_INT).build();
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(
-                this)
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this)
                 .threadPriority(Thread.NORM_PRIORITY - 1)
                 .threadPoolSize(3)
                 .memoryCacheSize(4 * 1024 * 1024)

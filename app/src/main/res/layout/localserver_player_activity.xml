@@ -22,6 +22,16 @@
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true" />
 
+        <ListView
+            android:id="@+id/lv_log"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="18.3dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="50dp"
+            android:divider="@null"></ListView>
+
+
     </RelativeLayout>
 
     <com.qihoo.videocloud.widget.ViewHeader
