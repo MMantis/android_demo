@@ -80,12 +80,13 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
 
-                <TextView
-                    android:id="@+id/resolution_ratio"
-                    android:layout_height="match_parent"
-                    android:layout_width="44.3dp"
-                    android:gravity="center"
-                    android:text="高清" />
+            <TextView
+                android:id="@+id/resolution_ratio"
+                android:layout_height="match_parent"
+                android:layout_width="44.3dp"
+                android:gravity="center"
+                android:text="高清" />
+
             <RelativeLayout
                 android:id="@+id/chang"
                 android:layout_width="44.3dp"
@@ -99,6 +100,7 @@
                     android:layout_height="wrap_content"
                     android:src="@drawable/zoom_in" />
             </RelativeLayout>
+
             <RelativeLayout
                 android:id="@+id/iv_zoom"
                 android:layout_width="44.3dp"

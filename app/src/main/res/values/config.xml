@@ -16,6 +16,7 @@
     <string name="config_url_control">http://sdk.test.live.360.cn/</string>
 
     <!--用户id，用户唯一标识-->
+    <!--    <string name="config_uid">2599000</string>-->
     <string name="config_uid">2599000</string>
 
 

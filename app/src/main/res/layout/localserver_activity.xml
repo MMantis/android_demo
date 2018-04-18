@@ -46,6 +46,6 @@
         android:layout_height="match_parent"
         android:divider="#99eeeeee"
         android:listSelector="@android:color/transparent"
-        android:dividerHeight="6.6dp"/>
+        android:dividerHeight="6.6dp" />
 
 </LinearLayout>

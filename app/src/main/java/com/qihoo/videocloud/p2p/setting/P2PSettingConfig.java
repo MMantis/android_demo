@@ -1,7 +1,6 @@
 
 package com.qihoo.videocloud.p2p.setting;
 
-
 public class P2PSettingConfig {
 
     public static final String TAG = "P2PServer";

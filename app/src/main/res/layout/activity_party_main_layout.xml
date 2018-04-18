@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <GridView
+        android:id="@+id/party_gridView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:gravity="center"
+        android:numColumns="2"
+        android:stretchMode="columnWidth"
+        android:focusable="true"
+        android:clickable="true"
+        android:overScrollMode="never" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/button_join"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="加入轰趴" />
+
+        <TextView
+            android:id="@+id/button_leave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="离开轰趴" />
+    </LinearLayout>
+
+</RelativeLayout>

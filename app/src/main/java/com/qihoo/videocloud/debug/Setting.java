@@ -20,6 +20,7 @@ public class Setting {
     private static final String KEY_URL_MIC = "KEY_URL_MIC";
     private static final String KEY_URL_FEEDBACK = "KEY_URL_FEEDBACK";
     private static final String KEY_URL_CONTROL = "KEY_URL_CONTROL";
+    private static final String KEY_CURR_CONFIG = "KEY_CURR_CONFIG";
 
     public static QHVCServerAddress readServerAddress() {
         QHVCSharedPreferences sp = QHVCSharedPreferences.getInstence();
@@ -74,6 +75,18 @@ public class Setting {
         sp.putStringValue(KEY_URL_MIC, serverAddress.getMic());
         sp.putStringValue(KEY_URL_FEEDBACK, serverAddress.getFeedback());
         sp.putStringValue(KEY_URL_CONTROL, serverAddress.getControl());
+    }
+
+    public static String getCurrServerConfig() {
+        QHVCSharedPreferences sp = QHVCSharedPreferences.getInstence();
+        String config = sp.getString(KEY_CURR_CONFIG, "");
+
+        return config;
+    }
+
+    public static void saveCurrServerConfig(String currConfig) {
+        QHVCSharedPreferences sp = QHVCSharedPreferences.getInstence();
+        sp.putStringValue(KEY_CURR_CONFIG, currConfig);
     }
 
 }

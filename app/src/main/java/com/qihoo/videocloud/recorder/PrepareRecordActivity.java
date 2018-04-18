@@ -21,7 +21,6 @@ import android.widget.Switch;
 import android.widget.Toast;
 
 import com.qihoo.livecloudrefactor.R;
-import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
 
 import java.util.ArrayList;
@@ -85,13 +84,6 @@ public class PrepareRecordActivity extends Activity implements View.OnClickListe
         orientationBoolean = sharedPreferences.getBoolean(RecorderConstants.CHOICE_HORIZONTAL, false);
         onlyVoiceBoolean = sharedPreferences.getBoolean(RecorderConstants.CHOICE_ONLY_VOICE, false);
         saveVideoBoolean = sharedPreferences.getBoolean(RecorderConstants.SAVE_VIDEO_FILE, false);
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {/*拷贝FaceU文件到SdCard*/
-                AndroidUtil.copyFiles(PrepareRecordActivity.this, "eff", AndroidUtil.getAppDir() + "eff");
-            }
-        }).start();
     }
 
     private void bindingDate() {

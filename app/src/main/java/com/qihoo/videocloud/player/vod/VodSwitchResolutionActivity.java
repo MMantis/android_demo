@@ -245,7 +245,6 @@ public class VodSwitchResolutionActivity extends Activity {
             }
         });
 
-
         mSbPlayProgress = (SeekBar) findViewById(R.id.sb_play_progress);
         mSbPlayProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -527,22 +526,22 @@ public class VodSwitchResolutionActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-//        if (mLiveCloudPlayer != null) {
-//            mLiveCloudPlayer.disableRender(false);
-//        }
-//        if (mVideoView != null) {
-//            mVideoView.startRender();
-//        }
+        //        if (mLiveCloudPlayer != null) {
+        //            mLiveCloudPlayer.disableRender(false);
+        //        }
+        //        if (mVideoView != null) {
+        //            mVideoView.startRender();
+        //        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-//        if (mLiveCloudPlayer != null) {
-//            mLiveCloudPlayer.disableRender(true);
-//        }
-//        if (mVideoView != null) {
-//            mVideoView.stopRender();
-//        }
+        //        if (mLiveCloudPlayer != null) {
+        //            mLiveCloudPlayer.disableRender(true);
+        //        }
+        //        if (mVideoView != null) {
+        //            mVideoView.stopRender();
+        //        }
     }
 }

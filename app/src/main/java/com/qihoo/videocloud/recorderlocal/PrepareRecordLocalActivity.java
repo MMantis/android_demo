@@ -22,7 +22,6 @@ import android.widget.Toast;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.recorder.RecorderConstants;
 import com.qihoo.videocloud.recorder.SettingActivity;
-import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
 
 import java.util.ArrayList;
@@ -77,13 +76,6 @@ public class PrepareRecordLocalActivity extends Activity implements View.OnClick
         sharedPreferences = QHVCSharedPreferences.getInstence();
         orientationBoolean = sharedPreferences.getBoolean(RecorderConstants.RECORDERLOCAL_CHOICE_HORIZONTAL, false);
         onlyVoiceBoolean = sharedPreferences.getBoolean(RecorderConstants.RECORDERLOCAL_CHOICE_ONLY_VOICE, false);
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {/*拷贝FaceU文件到SdCard*/
-                AndroidUtil.copyFiles(PrepareRecordLocalActivity.this, "eff", AndroidUtil.getAppDir() + "eff");
-            }
-        }).start();
     }
 
     private void bindingDate() {
@@ -99,7 +91,7 @@ public class PrepareRecordLocalActivity extends Activity implements View.OnClick
                 break;
             case R.id.record_prepare_set:
                 Intent mIntent = new Intent(this, SettingActivity.class);
-                mIntent.putExtra("fromLocal",true);/*录视频到本地*/
+                mIntent.putExtra("fromLocal", true);/*录视频到本地*/
                 startActivity(mIntent);
                 break;
             case R.id.record_prepare_start:

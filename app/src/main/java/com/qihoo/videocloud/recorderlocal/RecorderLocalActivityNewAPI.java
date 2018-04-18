@@ -2,6 +2,8 @@
 package com.qihoo.videocloud.recorderlocal;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -17,8 +19,10 @@ import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -387,9 +391,9 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
         mQhvcLiveKitAdvanced.setMediaSettings(mQHVCMediaSettingsBuilder.build());
         QHVCPublishSettings.Builder mQhvcPublishSettingsBuild = new QHVCPublishSettings.Builder();
         mQhvcPublishSettingsBuild.setOnlyToFile(1);/*拍摄功能设置为1：只拍摄 不推流*/
-        if(onlyVoiceBoolean){
+        if (onlyVoiceBoolean) {
             mQhvcPublishSettingsBuild.setMp4FileName(SAVEAUDIOFILEPATH);
-        }else{
+        } else {
             mQhvcPublishSettingsBuild.setMp4FileName(SAVEVIDEOFILEPATH);
         }
 
@@ -406,9 +410,9 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
         mQhvcLiveKitAdvanced.setDisplayPreview(mSurfaceView);
         mQhvcLiveKitAdvanced.setCameraFacing(QHVCConstants.Camera.FACING_FRONT);/*设置使用前置或者后置摄像头*/
         if (horizontalBoolean) {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE,this);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE, this);/*设置预览方向*/
         } else {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT,this);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT, this);/*设置预览方向*/
         }
         mQhvcLiveKitAdvanced.setStateCallback(new QHVCRecorderCallBack() {/*设置状态回调*/
             @Override
@@ -458,6 +462,7 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
         if (mQhvcLiveKitAdvanced != null) {
             mQhvcLiveKitAdvanced.release();/*释放资源*/
         }
+        updateVideo(SAVEVIDEOFILEPATH);
     }
 
     @Override
@@ -781,7 +786,6 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
         recordTimeCount = savedInstanceState.getInt("recordTimeCount");
     }
 
-
     private void exitDialog() {
         mExitCancel = new TextView(this);
         mExitConfirm = new TextView(this);
@@ -924,5 +928,33 @@ public class RecorderLocalActivityNewAPI extends Activity implements View.OnClic
             }
             super.onCallStateChanged(state, incomingNumber);
         }
+    }
+
+    /**
+     * 将视频插入图库
+     * @param url 视频路径地址
+     */
+    public void updateVideo(String url) {
+        File file = new File(url);
+        //获取ContentResolve对象，来操作插入视频
+        ContentResolver localContentResolver = this.getContentResolver();
+        //ContentValues：用于储存一些基本类型的键值对
+        ContentValues localContentValues = getVideoContentValues(this, file, System.currentTimeMillis());
+        //insert语句负责插入一条新的纪录，如果插入成功则会返回这条记录的id，如果插入失败会返回-1。
+        Uri localUri = localContentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, localContentValues);
+    }
+
+    //再往数据库中插入数据的时候将，将要插入的值都放到一个ContentValues的实例当中
+    public static ContentValues getVideoContentValues(Context paramContext, File paramFile, long paramLong) {
+        ContentValues localContentValues = new ContentValues();
+        localContentValues.put("title", paramFile.getName());
+        localContentValues.put("_display_name", paramFile.getName());
+        localContentValues.put("mime_type", "video/3gp");
+        localContentValues.put("datetaken", Long.valueOf(paramLong));
+        localContentValues.put("date_modified", Long.valueOf(paramLong));
+        localContentValues.put("date_added", Long.valueOf(paramLong));
+        localContentValues.put("_data", paramFile.getAbsolutePath());
+        localContentValues.put("_size", Long.valueOf(paramFile.length()));
+        return localContentValues;
     }
 }

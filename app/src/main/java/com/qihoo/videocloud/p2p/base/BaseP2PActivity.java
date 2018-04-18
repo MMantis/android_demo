@@ -11,8 +11,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.widget.Toast;
 
-import com.qihoo.livecloud.sdk.QHVCSdk;
-import com.qihoo.livecloud.sdk.QHVCSdkConfig;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.utils.FileUtils;
 import com.qihoo.videocloud.QHVCPlayer;

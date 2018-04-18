@@ -76,10 +76,10 @@ public class QHVCVideoView extends RelativeLayout implements ILiveCloudDisplay {
     //----------------------------------------- 外部接口 ------------------------------------------
 
     public void setDataSource(/*@IQHVCPlayer.PlayType */int playType,
-                              @NonNull String sn,
-                              @NonNull String channelId,
-                              @NonNull String sign,
-                              @Nullable Map<String, Object> options) throws IOException, IllegalArgumentException, IllegalStateException {
+            @NonNull String sn,
+            @NonNull String channelId,
+            @NonNull String sign,
+            @Nullable Map<String, Object> options) throws IOException, IllegalArgumentException, IllegalStateException {
         if (this.qhvcPlayer != null) {
             this.qhvcPlayer.setDataSource(playType, sn, channelId, sign, options);
         }

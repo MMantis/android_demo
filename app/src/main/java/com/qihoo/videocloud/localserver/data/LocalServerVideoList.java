@@ -186,6 +186,7 @@ public class LocalServerVideoList {
             "]\n";
 
     public static ArrayList<VideoItemData> getList() {
-        return new Gson().fromJson(VIDEO_RES, new TypeToken<List<VideoItemData>>() {}.getType());
+        return new Gson().fromJson(VIDEO_RES, new TypeToken<List<VideoItemData>>() {
+        }.getType());
     }
 }

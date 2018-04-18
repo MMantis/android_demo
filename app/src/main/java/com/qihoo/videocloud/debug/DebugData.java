@@ -64,7 +64,6 @@ public class DebugData {
 
             @Override
             public void onSuccess(String result) {
-                Log.v(TAG, "[request cloud config] success");
 
                 if (!TextUtils.isEmpty(result)) {
 
@@ -99,12 +98,14 @@ public class DebugData {
 
             @Override
             public void onError(Throwable ex, boolean isOnCallback) {
+                ex.printStackTrace();
                 Log.e(TAG, "[request cloud config] onError");
                 Toast.makeText(VideoCloudApplication.getInstance(), "置列表请求失败", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onCancelled(CancelledException cex) {
+                cex.printStackTrace();
                 Log.v(TAG, "[request cloud config] onCancelled");
                 Toast.makeText(VideoCloudApplication.getInstance(), "置列表请求取消", Toast.LENGTH_SHORT).show();
             }

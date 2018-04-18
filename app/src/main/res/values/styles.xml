@@ -121,6 +121,11 @@
         <item name="android:windowExitAnimation">@anim/record_pop_window_anim_out_anim</item>
     </style>
 
+    <style name="interactpopupWindowAnimation">
+        <item name="android:windowEnterAnimation">@anim/interact_pop_window_anim_enter_anim</item>
+        <item name="android:windowExitAnimation">@anim/interact_pop_window_anim_out_anim</item>
+    </style>
+
     <style name="baseDialog" parent="Theme.AppCompat.Light.Dialog">
         <item name="android:windowNoTitle">true</item>
         <!-- 无标题 -->
@@ -143,4 +148,27 @@
         <item name="android:background">@android:color/transparent</item>
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
+
+    <string-array name="create_interact_room_max_num">
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+    </string-array>
+    <string-array name="interact_setting_room_broadcaster_profile">
+        <item>240P_3</item>
+        <item>240P_4</item>
+        <item>360P_3</item>
+        <item>360P_6</item>
+        <item>360P</item>
+        <item>360P_4</item>
+        <item>360P_9</item>
+        <item>480P_3</item>
+        <item>480P_6</item>
+        <item>480P_8</item>
+        <item>480P_9</item>
+        <item>720P</item>
+        <item>720P_3</item>
+    </string-array>
 </resources>

@@ -62,7 +62,7 @@ import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_LAND;
 import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT;
 import static com.qihoo.videocloud.player.PlayConstant.SHOW_MODEL_PORT_SMALL;
 
-public class VodActivity extends Activity implements View.OnClickListener{
+public class VodActivity extends Activity implements View.OnClickListener {
 
     private static final String TAG = VodActivity.class.getSimpleName();
     private static final int PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE = 1000;
@@ -117,14 +117,21 @@ public class VodActivity extends Activity implements View.OnClickListener{
     private String SN_720P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_2_mp4-1516589235-b10eb2c4-a8be-b6c6.mp4";
     private String SN_480P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_1_mp4-1516589235-622a3f1d-c62b-9c41.mp4";
     private String SN_360P = "http://yunxianchang.live.ujne7.com/vod-system-bj/87926845_0_mp4-1516589235-6cbce4d1-614c-7059.mp4";
-    private String[] SN_SOURCE = {SN_1080P, SN_720P, SN_480P,SN_360P};
-    private String[] SN_SOURCE_FLAG = {"1080P", "超清", "高清","标清"};
-    private float[] mPlayRate = {1f, 1.5f, 2f,};
+    private String[] SN_SOURCE = {
+            SN_1080P, SN_720P, SN_480P, SN_360P
+    };
+    private String[] SN_SOURCE_FLAG = {
+            "1080P", "超清", "高清", "标清"
+    };
+    private float[] mPlayRate = {
+            1f, 1.5f, 2f,
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-//        hideSystemNavigationBar();
+        //        hideSystemNavigationBar();
         super.onCreate(savedInstanceState);
 
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -326,16 +333,16 @@ public class VodActivity extends Activity implements View.OnClickListener{
             } else {
                 options.put(IQHVCPlayerAdvanced.KEY_OPTION_DECODE_MODE, IQHVCPlayerAdvanced.LIVECLOUD_SOFT_DECODE_MODE);
             }
-//            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, url, channelId, "", options);
-            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD,
-                    new String[] {
-                            "resId0", "resId1", "resId2","resId3"
-                    },
-                    SN_SOURCE,
-                    2,
-                    getResources().getString(R.string.config_cid),
-                    "",
-                    options);
+            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD, url, channelId, "", options);
+            //            qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_VOD,
+            //                    new String[] {
+            //                            "resId0", "resId1", "resId2","resId3"
+            //                    },
+            //                    SN_SOURCE,
+            //                    2,
+            //                    getResources().getString(R.string.config_cid),
+            //                    "",
+            //                    options);
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
             Toast.makeText(this, "数据源异常", Toast.LENGTH_SHORT).show();
@@ -661,7 +668,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
         if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this,
-                    new String[]{
+                    new String[] {
                             permission
                     },
                     requestCode);
@@ -673,7 +680,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[], @NonNull int[] grantResults) {
+            @NonNull String permissions[], @NonNull int[] grantResults) {
         Logger.d(TAG, "onRequestPermissionsResult " + requestCode + " " + Arrays.toString(permissions) + " " + Arrays.toString(grantResults));
         switch (requestCode) {
             case PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE: {
@@ -681,7 +688,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 }
             }
-            break;
+                break;
 
             default:
                 break;
@@ -694,7 +701,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
         }
     }
 
-    private void  init(){
+    private void init() {
 
     }
 
@@ -725,7 +732,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
         }
     }
 
-    private void initChangeSpeedPopWindowView(View popView){
+    private void initChangeSpeedPopWindowView(View popView) {
         speed1_0 = (TextView) popView.findViewById(R.id.vod_speed_1_0);
         speed1_0.setOnClickListener(this);
         speed1_5 = (TextView) popView.findViewById(R.id.vod_speed_1_5);
@@ -763,7 +770,7 @@ public class VodActivity extends Activity implements View.OnClickListener{
         }
     }
 
-    private void initResolutionRatioPopWindowView(View popView){
+    private void initResolutionRatioPopWindowView(View popView) {
         resoulution_1080p = (TextView) popView.findViewById(R.id.resoulution_1080p);
         resoulution_1080p.setOnClickListener(this);
         resoulution_720p = (TextView) popView.findViewById(R.id.resoulution_720p);
@@ -782,15 +789,15 @@ public class VodActivity extends Activity implements View.OnClickListener{
      */
     @Override
     public void onClick(View v) {
-        switch(v.getId()){
+        switch (v.getId()) {
             case R.id.vod_speed_1_0:
-                setChangeSpeedPopSelect(speed1_0,0);
+                setChangeSpeedPopSelect(speed1_0, 0);
                 break;
             case R.id.vod_speed_1_5:
-                setChangeSpeedPopSelect(speed1_5,1);
+                setChangeSpeedPopSelect(speed1_5, 1);
                 break;
             case R.id.vod_speed_2_0:
-                setChangeSpeedPopSelect(speed2_0,2);
+                setChangeSpeedPopSelect(speed2_0, 2);
                 break;
             case R.id.resolution_ratio:
                 showResolutionRatioPopWindow();
@@ -799,31 +806,31 @@ public class VodActivity extends Activity implements View.OnClickListener{
                 showChangeSpeedPopWindow();
                 break;
             case R.id.resoulution_1080p:
-                setesoulutionRRatioPopSelect(resoulution_1080p,0);
+                setesoulutionRRatioPopSelect(resoulution_1080p, 0);
                 break;
             case R.id.resoulution_720p:
-                setesoulutionRRatioPopSelect(resoulution_720p,1);
+                setesoulutionRRatioPopSelect(resoulution_720p, 1);
                 break;
             case R.id.resoulution_480p:
-                setesoulutionRRatioPopSelect(resoulution_480p,2);
+                setesoulutionRRatioPopSelect(resoulution_480p, 2);
                 break;
             case R.id.resoulution_320p:
-                setesoulutionRRatioPopSelect(resoulution_320p,3);
+                setesoulutionRRatioPopSelect(resoulution_320p, 3);
                 break;
-
 
         }
 
     }
 
-    private void setChangeSpeedPopSelect(TextView view,int index){
+    private void setChangeSpeedPopSelect(TextView view, int index) {
         speed1_0.setTextColor(getResources().getColor(R.color.white));
         speed1_5.setTextColor(getResources().getColor(R.color.white));
         speed2_0.setTextColor(getResources().getColor(R.color.white));
         view.setTextColor(getResources().getColor(R.color.change_speed_textclour));
         qhvcPlayer.setPlayBackRate(mPlayRate[index]);
     }
-    private void setesoulutionRRatioPopSelect(TextView view,int index){
+
+    private void setesoulutionRRatioPopSelect(TextView view, int index) {
         resoulution_1080p.setTextColor(getResources().getColor(R.color.white));
         resoulution_720p.setTextColor(getResources().getColor(R.color.white));
         resoulution_480p.setTextColor(getResources().getColor(R.color.white));
@@ -855,10 +862,10 @@ public class VodActivity extends Activity implements View.OnClickListener{
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(VodActivity.this, "success" , Toast.LENGTH_SHORT).show();
+                            Toast.makeText(VodActivity.this, "success", Toast.LENGTH_SHORT).show();
                             mChangeMessage.setText("");
                             resolutionRatio.setText(SN_SOURCE_FLAG[index]);
-                            PlayerLogger.i(TAG,"-----index:"+index+"-----url:"+url);
+                            PlayerLogger.i(TAG, "-----index:" + index + "-----url:" + url);
                             mediaInformationMap = qhvcPlayer.getMediaInformation();
 
                         }

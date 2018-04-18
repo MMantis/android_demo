@@ -19,7 +19,6 @@ import android.widget.TextView;
 
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloudrefactor.R;
-import com.qihoo.videocloud.player.preview.LiveVideoViewActivity;
 import com.qihoo.videocloud.stats.tool.PublishStatsTool;
 import com.qihoo.videocloud.view.ExpandableHeightListView;
 import com.qihoo.videocloud.view.MarqueeTextView;

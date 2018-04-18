@@ -159,12 +159,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginRight="49.3dp"
                 android:button="@drawable/point_selector"
-                android:enabled="false"
+                android:enabled="true"
                 android:paddingLeft="7dp"
                 android:text="@string/str_config_decoded_auto"
                 android:textColor="@drawable/radiobutton_text_config_decoded_type"
                 android:textSize="14sp"
-                android:visibility="gone" />
+                android:visibility="visible" />
 
             <RadioButton
                 android:id="@+id/rb_config_decoded_soft"

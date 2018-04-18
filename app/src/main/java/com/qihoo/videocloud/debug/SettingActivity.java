@@ -3,6 +3,7 @@ package com.qihoo.videocloud.debug;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -36,7 +37,7 @@ public class SettingActivity extends Activity implements View.OnClickListener {
     private LinearLayout layoutSpinner;
 
     private Spinner serverAddressSpinner;
-    private ArrayAdapter serverAddressAdapter;
+    //private ArrayAdapter serverAddressAdapter;
     private List<String> serverAddressDataList = new ArrayList<>();
 
     private ListView settingListView;
@@ -50,8 +51,18 @@ public class SettingActivity extends Activity implements View.OnClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_server_address_setting);
 
+        readLocalConfig();
         initView();
         initData();
+    }
+
+    private void readLocalConfig() {
+        String currConfig = Setting.getCurrServerConfig();
+        if (TextUtils.isEmpty(currConfig)) {
+            currConfig = DebugData.DEMO_CONFIG_KEY_ONLINE;
+        }
+        Logger.i(TAG, TAG + ", readLocalConfig, configSelectKey : " + currConfig);
+        configSelectKey = currConfig;
     }
 
     private void initView() {
@@ -68,7 +79,11 @@ public class SettingActivity extends Activity implements View.OnClickListener {
             }
         });
 
-        serverAddressDataList.add(CURRENT_CONFIG);
+        serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_ONLINE);
+        serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_TEST);
+        serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_DEBUG);
+
+        //serverAddressDataList.add(CURRENT_CONFIG);
         ArrayAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, serverAddressDataList);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         serverAddressSpinner.setAdapter(adapter);
@@ -77,8 +92,6 @@ public class SettingActivity extends Activity implements View.OnClickListener {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String key = serverAddressDataList.get(position);
-                Toast.makeText(SettingActivity.this, "select: " + key, Toast.LENGTH_SHORT).show();
-
                 if (key.equals(CURRENT_CONFIG)) {
 
                     configSelectKey = key;
@@ -94,7 +107,6 @@ public class SettingActivity extends Activity implements View.OnClickListener {
                         configSelectKey = key;
                         setSettingDetailContent(getStringList(o));
                     } else {
-
                         if (Logger.LOG_ENABLE) {
                             Logger.e(TAG, "select config is null.");
                         }
@@ -170,14 +182,11 @@ public class SettingActivity extends Activity implements View.OnClickListener {
                     public void run() {
                         if (map != null && !map.isEmpty()) {
 
-                            serverAddressDataList.clear();
-                            serverAddressDataList.add(CURRENT_CONFIG);
-                            serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_ONLINE);
-                            serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_TEST);
-                            serverAddressDataList.add(DebugData.DEMO_CONFIG_KEY_DEBUG);
+                            //serverAddressDataList.clear();
+                            //serverAddressDataList.add(CURRENT_CONFIG);
 
-                            serverAddressAdapter.notifyDataSetChanged();
-                            serverAddressSpinner.setSelection(0);
+                            //serverAddressAdapter.notifyDataSetChanged();
+                            serverAddressSpinner.setSelection(getSelectionIndex());
                         } else {
                             Toast.makeText(SettingActivity.this, "配置列表为空", Toast.LENGTH_SHORT).show();
                         }
@@ -187,18 +196,36 @@ public class SettingActivity extends Activity implements View.OnClickListener {
         });
     }
 
+    private int getSelectionIndex() {
+        if (configSelectKey.equals(DebugData.DEMO_CONFIG_KEY_ONLINE)) {
+            return 0;
+        }
+        if (configSelectKey.equals(DebugData.DEMO_CONFIG_KEY_TEST)) {
+            return 1;
+        }
+        if (configSelectKey.equals(DebugData.DEMO_CONFIG_KEY_DEBUG)) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    private void saveConfig() {
+        if (!configSelectKey.equals(CURRENT_CONFIG)) {
+
+            Setting.saveServerAddress(DebugData.getInstance().getDemoConfigMap().get(configSelectKey));
+            Setting.saveCurrServerConfig(configSelectKey);
+            Toast.makeText(this, "配置变更->" + configSelectKey + ",重启app生效!", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "配置无变化", Toast.LENGTH_LONG).show();
+        }
+    }
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_set: {
-
-                if (!configSelectKey.equals(CURRENT_CONFIG)) {
-
-                    Setting.saveServerAddress(DebugData.getInstance().getDemoConfigMap().get(configSelectKey));
-                    Toast.makeText(this, "配置变更->" + configSelectKey + ",重启app生效!", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(this, "配置无变化", Toast.LENGTH_LONG).show();
-                }
+                saveConfig();
             }
                 break;
         }

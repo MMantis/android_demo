@@ -3,7 +3,6 @@ package com.qihoo.videocloud.p2p.data;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.qihoo.videocloud.localserver.VideoItemData;
 import com.qihoo.videocloud.p2p.P2PVideoItemData;
 
 import java.util.ArrayList;
@@ -187,6 +186,7 @@ public class P2PVideoList {
             "]\n";
 
     public static ArrayList<P2PVideoItemData> getList() {
-        return new Gson().fromJson(VIDEO_RES, new TypeToken<List<P2PVideoItemData>>() {}.getType());
+        return new Gson().fromJson(VIDEO_RES, new TypeToken<List<P2PVideoItemData>>() {
+        }.getType());
     }
 }

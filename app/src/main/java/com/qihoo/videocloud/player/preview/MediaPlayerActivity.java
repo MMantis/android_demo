@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.TimedMetaData;
-import android.media.TimedText;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;

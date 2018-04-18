@@ -26,4 +26,9 @@
     <color name="switch_bg_press">#14000000</color>
 
     <color name="change_speed_textclour">#57B0F6</color>
+
+    <!-- ListVew按下颜色 -->
+    <color name="default_list_pressed">#f3f3f3</color>
+    <color name="default_list_normal">#FFFFFF</color>
+    <color name="actionbar_bg_color">#77c5ff</color>
 </resources>

@@ -13,8 +13,8 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo.State;
 import android.net.Uri;
+import android.net.NetworkInfo.State;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
@@ -22,7 +22,6 @@ import android.os.SystemClock;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -672,7 +671,6 @@ public class AndroidUtil {
         }
     }
 
-
     public static class GetPathFromUri4kitkat {
 
         /**
@@ -721,7 +719,9 @@ public class AndroidUtil {
                     }
 
                     final String selection = "_id=?";
-                    final String[] selectionArgs = new String[] { split[1] };
+                    final String[] selectionArgs = new String[] {
+                            split[1]
+                    };
 
                     return getDataColumn(context, contentUri, selection, selectionArgs);
                 }
@@ -753,11 +753,13 @@ public class AndroidUtil {
          * @return The value of the _data column, which is typically a file path.
          */
         public static String getDataColumn(Context context, Uri uri, String selection,
-                                           String[] selectionArgs) {
+                String[] selectionArgs) {
 
             Cursor cursor = null;
             final String column = "_data";
-            final String[] projection = { column };
+            final String[] projection = {
+                    column
+            };
 
             try {
                 cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,

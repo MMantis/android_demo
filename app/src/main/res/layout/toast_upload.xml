@@ -4,6 +4,7 @@
     android:layout_height="match_parent"
     android:background="#7f7b7b7b"
     android:gravity="center">
+
     <RelativeLayout
         android:layout_width="269.6dp"
         android:layout_height="131dp"

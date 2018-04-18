@@ -61,7 +61,7 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
     private boolean autoAdjustCodeRateSp;
     private String audioCodeRateSp;
     private String audioSampleSp;
-    private boolean recordLocal ;/*是否是本地录制*/
+    private boolean recordLocal;/*是否是本地录制*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,15 +73,15 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
     }
 
     private void initData() {
-        recordLocal = getIntent().getBooleanExtra("fromLocal",false);/*是否是本地录制视频*/
+        recordLocal = getIntent().getBooleanExtra("fromLocal", false);/*是否是本地录制视频*/
 
         sharedPreferences = QHVCSharedPreferences.getInstence();
         resolutionRatioSp = sharedPreferences.getString(RecorderConstants.RESOLUTION_RATIO, "360P");
         encodeTypeSp = sharedPreferences.getString(RecorderConstants.ENCODE_TYPE, "H.264");
         videoFpsSp = sharedPreferences.getString(RecorderConstants.VIDEO_FPS, "15Hz");
-        if(recordLocal){
+        if (recordLocal) {
             codeRateSp = sharedPreferences.getInt(RecorderConstants.RECORDE_LOCAL_CODE_RATE, 300);
-        }else{
+        } else {
             codeRateSp = sharedPreferences.getInt(RecorderConstants.CODE_RATE, 100);
         }
         autoAdjustCodeRateSp = sharedPreferences.getBoolean(RecorderConstants.AUTO_ADJUST_CODE_RATE, false);
@@ -137,7 +137,7 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
         confirmLayout = (LinearLayout) findViewById(R.id.record_setting_confirm_layout);
         confirmLayout.setOnClickListener(this);
 
-        if(recordLocal){/*本地录制 不需要码率自适应*/
+        if (recordLocal) {/*本地录制 不需要码率自适应*/
             set48KHzButton.setVisibility(View.GONE);
             checkAutoAdjustCodeRate.setVisibility(View.GONE);
         }
@@ -175,10 +175,10 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
         setSeekBar.postDelayed(new Runnable() {/*延迟100ms*/
             @Override
             public void run() {
-                if(recordLocal){
+                if (recordLocal) {
                     currentCodeRate.setText(codeRateSp + "kbps");
                     setSeekBar.setProgress((codeRateSp - 300) / 37);/*max为100，取值是100~1800*/
-                }else{
+                } else {
                     setSeekBar.setProgress((codeRateSp - 100) / 17);/*max为100，取值是100~1800*/
                 }
             }
@@ -217,9 +217,9 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
     SeekBar.OnSeekBarChangeListener seekBarChangeListen = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            if(recordLocal){
+            if (recordLocal) {
                 codeRateSp = progress * 37 + 300;
-            }else{
+            } else {
                 codeRateSp = progress * 17 + 100;
             }
             currentCodeRate.setText(codeRateSp + "kbps");
@@ -261,9 +261,9 @@ public class SettingActivity extends Activity implements View.OnClickListener, R
                 sharedPreferences.putStringValue(RecorderConstants.RESOLUTION_RATIO, resolutionRatioSp);
                 sharedPreferences.putStringValue(RecorderConstants.ENCODE_TYPE, encodeTypeSp);
                 sharedPreferences.putStringValue(RecorderConstants.VIDEO_FPS, videoFpsSp);
-                if(recordLocal){
+                if (recordLocal) {
                     sharedPreferences.putIntValue(RecorderConstants.RECORDE_LOCAL_CODE_RATE, codeRateSp);
-                }else{
+                } else {
                     sharedPreferences.putIntValue(RecorderConstants.CODE_RATE, codeRateSp);
                 }
                 sharedPreferences.putBooleanValue(RecorderConstants.AUTO_ADJUST_CODE_RATE, autoAdjustCodeRateSp);

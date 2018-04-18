@@ -139,7 +139,7 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
     private static final int FLING_MIN_DISTANCE = 200;//  滑动最小距离
     private static final int FLING_MIN_VELOCITY = 200;// 滑动最大速度
     private GestureDetector mGestureDetector;
-//    private final String RTMP = "rtmp://ps4.live.huajiao.com/live_huajiao_v2/_LC_ps4_non_1000764515100385791154386_OX?sign=9b53c9784a9b0ca40a5bd2b2f8e5d2a7&ts=1510038579";
+    //    private final String RTMP = "rtmp://ps4.live.huajiao.com/live_huajiao_v2/_LC_ps4_non_1000764515100385791154386_OX?sign=9b53c9784a9b0ca40a5bd2b2f8e5d2a7&ts=1510038579";
     private final String RTMP = "rtmp://ps0.live.huajiao.com/live_huajiao_v2/_LC_ps0_non_10011179150233398715" + new Random().nextInt(10000);
     private final String SAVEVIDEOFILEPATH = "/sdcard/123.mp4";
     private String encodeTypeSp;
@@ -445,9 +445,9 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
         mQhvcLiveKitAdvanced.setDisplayPreview(mSurfaceView);
         mQhvcLiveKitAdvanced.setCameraFacing(QHVCConstants.Camera.FACING_FRONT);/*设置使用前置或者后置摄像头*/
         if (horizontalBoolean) {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE,this);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE, this);/*设置预览方向*/
         } else {
-            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT,this);/*设置预览方向*/
+            mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT, this);/*设置预览方向*/
         }
         mQhvcLiveKitAdvanced.setStateCallback(new QHVCRecorderCallBack() {/*设置状态回调*/
             @Override
@@ -644,6 +644,7 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
             initBeautyPopWindowView(popView);
             mBeautyPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
             mBeautyPopWindow.setOutsideTouchable(true);
+            mBeautyPopWindow.setBackgroundDrawable(new BitmapDrawable());
             mBeautyPopWindow.setFocusable(true);
             mBeautyPopWindow.setTouchable(true);
             mBeautyPopWindow.setAnimationStyle(R.style.popupWindowAnimation);
