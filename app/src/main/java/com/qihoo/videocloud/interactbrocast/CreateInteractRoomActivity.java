@@ -65,17 +65,17 @@ public class CreateInteractRoomActivity extends Activity implements View.OnClick
 
     private void doCreate() {
         if (mCreating) {
-            Toast.makeText(this, "操作太频繁，请稍后重试", Toast.LENGTH_SHORT).show();
+            showToast("操作太频繁，请稍后重试");
             return;
         }
 
         String roomName = mRoomNameEditText.getText().toString().trim();
         if (TextUtils.isEmpty(roomName)) {
-            Toast.makeText(this, "请输入房间名称", Toast.LENGTH_SHORT).show();
+            showToast("请输入房间名称");
             return;
         }
         if (roomName.length() > 16) {
-            Toast.makeText(this, "房间名称不能大于16个字符", Toast.LENGTH_SHORT).show();
+            showToast("房间名称不能大于16个字符");
             return;
         }
 
@@ -123,7 +123,7 @@ public class CreateInteractRoomActivity extends Activity implements View.OnClick
                             startActivity(intent);
                             finish();
                         } else {
-                            Toast.makeText(CreateInteractRoomActivity.this, "创建房间失败", Toast.LENGTH_SHORT).show();
+                            showToast("创建房间失败");
                         }
                     }
 
@@ -134,8 +134,17 @@ public class CreateInteractRoomActivity extends Activity implements View.OnClick
                         }
 
                         mCreating = false;
-                        Toast.makeText(CreateInteractRoomActivity.this, "创建房间失败(" + errCode + ")", Toast.LENGTH_SHORT).show();
+                        showToast("创建房间失败(" + errCode + ")");
                     }
                 });
+    }
+
+    private void showToast(final String toast) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(CreateInteractRoomActivity.this.getApplicationContext(), toast, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

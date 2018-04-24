@@ -52,6 +52,7 @@ public class InteractServerApi {
 
     private static final String TAG = "InteractServerApi";
 
+    private static final String DEBUG_ENV_URL = "http://10.16.57.243:9908/api";
     private static final String TEST_ENV_URL = "http://k0106v.add.lfyc.qihoo.net:9908/api";
     private static final String RELEASE_ENV_URL = "http://livedemo.vcloud.360.cn/api";
 
@@ -74,12 +75,12 @@ public class InteractServerApi {
         QHVCSdkConfig qhvcSdkConfig = QHVCSdk.getInstance().getConfig();
 
         Map<String, String> params = new HashMap<>();
-        params.put("channelId", UrlSafeEncode.encode(InteractGlobalManager.getInstance().getBusinessId()));
+        params.put("channelId", InteractGlobalManager.getInstance().getBusinessId());
         params.put("deviceId", qhvcSdkConfig.getMachineId());
         params.put("ts", String.valueOf(System.currentTimeMillis()));
         params.put("sessionId", InteractGlobalManager.getInstance().getSessionId());
         params.put("ostype", "android");
-        params.put("modelName", UrlSafeEncode.encode(Build.MODEL));
+        params.put("modelName", Build.MODEL);
         params.put("appVersion", qhvcSdkConfig.getAppVersion());
         return params;
     }
@@ -122,9 +123,14 @@ public class InteractServerApi {
         HashMap<String, String> headerParams = new HashMap<>();
         headerParams.put("Authorization", getServerAuthorization(getParams));
 
+        for (Map.Entry<String, String> entry : getParams.entrySet()) {
+            getParams.put(entry.getKey(), UrlSafeEncode.encode(entry.getValue()));
+        }
+
         LiveCloudHttpParam httpParam = new LiveCloudHttpParam();
         httpParam.setParameter(getParams);
         httpParam.setRequestProperty(headerParams);
+
         new LCHttpGet(url, httpParam, new HttpCallBack() {
 
             @Override
@@ -311,9 +317,7 @@ public class InteractServerApi {
     public static void userLogin(final ResultCallback<InteractUserModel> callback) {
         String url = getServerUrl() + "/userLogin";
 
-        Logger.i(InteractConstant.TAG, InteractConstant.TAG + ",send url: " + url);
-
-        commonHttpGet(url, null, new HttpCallBack() {
+        commonHttpPost(url, null, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -362,7 +366,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomType", String.valueOf(roomType));
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -412,7 +416,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -458,13 +462,13 @@ public class InteractServerApi {
 
         HashMap<String, String> params = new HashMap<>();
         params.put("userId", userId);
-        params.put("roomName", UrlSafeEncode.encode(roomName));
+        params.put("roomName", roomName);
         params.put("roomType", String.valueOf(roomType));
         params.put("talkType", String.valueOf(talkType));
         params.put("roomLifeType", String.valueOf(roomLifeType));
         params.put("maxNum", String.valueOf(maxNum));
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -510,7 +514,7 @@ public class InteractServerApi {
         params.put("roomId", roomId);
         params.put("identity", String.valueOf(userIdentity));
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -554,7 +558,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -603,9 +607,9 @@ public class InteractServerApi {
             sbUserIdentity.append(String.valueOf(identity)).append(",");
         }
         sbUserIdentity.setLength(sbUserIdentity.length() - 1);
-        params.put("identity", UrlSafeEncode.encode(sbUserIdentity.toString()));
+        params.put("identity", sbUserIdentity.toString());
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -657,7 +661,7 @@ public class InteractServerApi {
         params.put("roomId", roomId);
         params.put("identity", String.valueOf(userIdentity));
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -704,7 +708,7 @@ public class InteractServerApi {
         params.put("roomId", roomId);
         params.put("guestId", guestId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -749,7 +753,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -794,7 +798,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -838,7 +842,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {
@@ -875,7 +879,7 @@ public class InteractServerApi {
         params.put("userId", userId);
         params.put("roomId", roomId);
 
-        commonHttpGet(url, params, new HttpCallBack() {
+        commonHttpPost(url, params, new HttpCallBack() {
 
             @Override
             public void onSuccess(String result) {

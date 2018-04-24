@@ -135,7 +135,7 @@ public class InteracatTypeHallActivity extends Activity implements View.OnClickL
                             return;
                         }
 
-                        Toast.makeText(InteracatTypeHallActivity.this, "获取房间列表错误(" + errCode + ")", Toast.LENGTH_SHORT).show();
+                        showToast("获取房间列表错误(" + errCode + ")");
                         refreshLayout.setRefreshing(false);
                     }
                 });
@@ -176,13 +176,13 @@ public class InteracatTypeHallActivity extends Activity implements View.OnClickL
 
     private void doSearch() {
         if (mSearching) {
-            Toast.makeText(InteracatTypeHallActivity.this, "操作太频繁，请稍后重试", Toast.LENGTH_SHORT).show();
+            showToast("操作太频繁，请稍后重试");
             return;
         }
 
         String text = mRoomSearchEditText.getText().toString().trim();
         if (TextUtils.isEmpty(text)) {
-            Toast.makeText(InteracatTypeHallActivity.this, "请输入房间ID", Toast.LENGTH_SHORT).show();
+            showToast("请输入房间ID");
             return;
         }
 
@@ -200,7 +200,7 @@ public class InteracatTypeHallActivity extends Activity implements View.OnClickL
                 if (roomModel != null) {
                     doJoinRoom(roomModel);
                 } else {
-                    Toast.makeText(InteracatTypeHallActivity.this, "该房间不存在", Toast.LENGTH_SHORT).show();
+                    showToast("该房间不存在");
                 }
             }
 
@@ -211,7 +211,7 @@ public class InteracatTypeHallActivity extends Activity implements View.OnClickL
                 }
 
                 mSearching = false;
-                Toast.makeText(InteracatTypeHallActivity.this, "该房间不存在(" + errCode + ")", Toast.LENGTH_SHORT).show();
+                showToast("该房间不存在(" + errCode + ")");
             }
         });
     }
@@ -251,5 +251,14 @@ public class InteracatTypeHallActivity extends Activity implements View.OnClickL
     public void onRefresh() {
         refreshLayout.setRefreshing(true);
         refreshData();
+    }
+
+    private void showToast(final String toast) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(InteracatTypeHallActivity.this.getApplicationContext(), toast, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

@@ -262,7 +262,7 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
             mWorker.joinChannel();
         } else {
             Logger.w(InteractConstant.TAG, "Error! joinChannel failed, mWorker is null!");
-            Toast.makeText(this, "Error! mWorker is null!", Toast.LENGTH_LONG).show();
+            showToast("Error! mWorker is null!");
         }
     }
 

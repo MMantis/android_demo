@@ -19,6 +19,7 @@ import com.qihoo.livecloud.tools.Constants;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.MD5;
 import com.qihoo.videocloud.VideoCloudApplication;
+import com.qihoo.videocloud.interactbrocast.data.InteractGlobalManager;
 import com.qihoo.videocloud.interactbrocast.livingcammera.VideoSourceListener;
 
 import java.io.File;
@@ -171,6 +172,14 @@ public class WorkerThread extends Thread implements VideoSourceListener {
             mWorkerHandler.sendMessage(envelop);
             return;
         }
+
+        //TODO 注意：secretkey必须放在业务服务端，切勿放在客户端。此处uSign和appKey放在Demo中仅用于演示。
+        String cid = InteractGlobalManager.getInstance().getChannelId();
+        String ak = InteractGlobalManager.getInstance().getAppKey();
+        String sk = InteractGlobalManager.getInstance().getSecretKey();
+        String uSign = MD5.encryptMD5("sname__" + cid + "room_id__" + roomId + "uid__" + userId + sk);
+        InteractGlobalManager.getInstance().setUSign(uSign);
+        QHVCInteractiveKit.getInstance().setPublicServiceInfo(cid, ak, uSign);
 
         int result = mInteractEngine.loadEngine(roomId, userId, caluSessionForTest(), optionInfo, InteractCallback.getInstance());
         if (result < 0) {

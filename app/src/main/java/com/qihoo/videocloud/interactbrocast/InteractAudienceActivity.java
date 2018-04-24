@@ -23,7 +23,6 @@ import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.qihoo.livecloud.interact.api.QHVCInteractiveConstant;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveEventHandler;
@@ -98,8 +97,8 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     private int mUserVideoCapture = InteractConstant.VIDEO_SDK_COMMON_CAPTURE;
 
     ///////////////For test 为了测试互动直播转推功能 ///////////////////
-    private static final String pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240540_OX";
-    private static final String pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240540_OX.flv";
+    private static final String pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240547_OX";
+    private static final String pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240547_OX.flv";
     //////////////////////////////////
 
     //    private UpdateRoom mUpdateRoomForGuest; //嘉宾专用
@@ -157,6 +156,12 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         // 注册IM回调
         InteractIMManager.getInstance().addReceiveCommandistener(mOnReceiveCommandListener);
         joinIMRoom();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        onDestroy();
     }
 
     @Override
@@ -274,7 +279,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
             @Override
             public void doOnClickEnableVideo(ImageView view) {
                 if (talkType == InteractConstant.TALK_TYPE_AUDIO) {
-                    Toast.makeText(InteractAudienceActivity.this, "该房间为音频房间", Toast.LENGTH_LONG).show();
+                    showToast("该房间为音频房间");
                     return;
                 }
                 doSwitchToSendLocalVideo(view);
@@ -392,7 +397,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
                     @Override
                     public void onFailed(int errCode, String errMsg) {
-                        Toast.makeText(InteractAudienceActivity.this, errMsg, Toast.LENGTH_LONG).show();
+                        showToast(errMsg);
                     }
                 });
 
@@ -568,7 +573,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                             new InteractServerApi.ResultCallback<InteractRoomModel>() {
                                 @Override
                                 public void onSuccess(InteractRoomModel data) {
-                                    Toast.makeText(InteractAudienceActivity.this, "离开房间", Toast.LENGTH_LONG).show();
+                                    showToast("离开房间");
                                     timeHandler.removeCallbacks(timeClickRunnable);
                                 }
 
@@ -841,7 +846,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                 new InteractServerApi.ResultCallback<InteractRoomModel>() {
                     @Override
                     public void onSuccess(InteractRoomModel data) {
-                        Toast.makeText(InteractAudienceActivity.this, "观众加入房间成功！", Toast.LENGTH_LONG).show();
+                        showToast("观众加入房间成功！");
                         showBroadcasterView();
                         mWorker.getInteractEngine().setEnableSpeakerphone(true); // 设置使用外放播放声音
                         timeHandler.postDelayed(timeClickRunnable, 1000);
@@ -852,8 +857,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
                     @Override
                     public void onFailed(int errCode, String errMsg) {
-                        Toast.makeText(InteractAudienceActivity.this, "观众加入房间失败！errCode：" + errCode + "---errMsg:" + errMsg,
-                                Toast.LENGTH_LONG).show();
+                        showToast("观众加入房间失败！errCode：" + errCode + "---errMsg:" + errMsg);
                     }
                 });
     }
@@ -1254,7 +1258,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                                 @Override
                                 public void onFailed(int errCode, String errMsg) {
                                     if (errCode == 10001 && "该房间不存在".equals(errMsg)) {/*主播被踢出*/
-                                        Toast.makeText(InteractAudienceActivity.this, "主播掉线", Toast.LENGTH_LONG).show();
+                                        showToast("主播掉线");
                                         onBackPressed();
                                     }
                                 }
@@ -1321,7 +1325,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         }
         /*IM发送通知，房间成员已经改变*/
         if (isChange) {
-            Toast.makeText(InteractAudienceActivity.this, "房间人员变化", Toast.LENGTH_LONG).show();
+            showToast("房间人员变化");
             changeUI(newList);
         }
     }
@@ -1408,7 +1412,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                             @Override
                             public void run() {
                                 if (mCurrState == STATE_AUDIENCE) {
-                                    Toast.makeText(InteractAudienceActivity.this, "主播同意连线", Toast.LENGTH_LONG).show();
+                                    showToast("主播同意连线");
                                     //互动申请
                                     changeToGuest();
 
@@ -1420,7 +1424,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                         LibTaskController.post(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(InteractAudienceActivity.this, "主播拒绝连线", Toast.LENGTH_LONG).show();
+                                showToast("主播拒绝连线");
                             }
                         });
                         break;
@@ -1429,7 +1433,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                         LibTaskController.post(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(InteractAudienceActivity.this, "已被主播踢出", Toast.LENGTH_LONG).show();
+                                showToast("已被主播踢出");
                                 changeToAudience();
                             }
                         });
@@ -1440,7 +1444,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                         LibTaskController.post(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(InteractAudienceActivity.this, "主播已退出", Toast.LENGTH_LONG).show();
+                                showToast("主播已退出");
                                 onBackPressed();
                             }
                         });

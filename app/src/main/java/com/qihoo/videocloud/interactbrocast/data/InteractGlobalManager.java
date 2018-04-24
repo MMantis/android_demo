@@ -46,6 +46,10 @@ public class InteractGlobalManager {
         this.mChannelId = channelId;
     }
 
+    public String getChannelId() {
+        return this.mChannelId;
+    }
+
     /**
      * 会话ID
      */
@@ -83,6 +87,19 @@ public class InteractGlobalManager {
 
     public String getAppKey() {
         return this.mAppKey;
+    }
+
+    /**
+     * 业务Secret KEY，必须放在业务服务端，切勿放在客户端。此处放在Demo中仅用于演示
+     */
+    private String mSecretKey;
+
+    public String getSecretKey() {
+        return mSecretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.mSecretKey = secretKey;
     }
 
     /**

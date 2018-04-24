@@ -208,15 +208,15 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
     private boolean checkRecordPermission() {
         boolean canStartRecord = true;
         if (!selfPermissionGranted(this, Manifest.permission.RECORD_AUDIO)) {
-            Toast.makeText(this, "未获取录音权限", Toast.LENGTH_SHORT).show();
+            showToast("未获取录音权限");
             canStartRecord = false;
         }
         if (!selfPermissionGranted(this, Manifest.permission.CAMERA)) {
-            Toast.makeText(this, "未获取相机权限", Toast.LENGTH_SHORT).show();
+            showToast("未获取相机权限");
             canStartRecord = false;
         }
         if (!selfPermissionGranted(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            Toast.makeText(this, "未获取写本地文件权限", Toast.LENGTH_SHORT).show();
+            showToast("未获取写本地文件权限");
             canStartRecord = false;
         }
         return canStartRecord;
@@ -252,19 +252,21 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
         final String appKey = appKeyEditText.getText().toString();
         final String secretKey = secretKeyEditText.getText().toString();
         if (TextUtils.isEmpty(cid)) {
-            Toast.makeText(PrepareInteractBrocastActivity.this, "ChannelId不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。", Toast.LENGTH_SHORT).show();
+            showToast("ChannelId不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。");
             return;
         }
         if (TextUtils.isEmpty(appKey)) {
-            Toast.makeText(PrepareInteractBrocastActivity.this, "AppKey不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。", Toast.LENGTH_SHORT).show();
+            showToast("AppKey不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。");
             return;
         }
         if (TextUtils.isEmpty(secretKey)) {
-            Toast.makeText(PrepareInteractBrocastActivity.this, "SecretKey不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。", Toast.LENGTH_SHORT).show();
+            showToast("SecretKey不能为空, 这个参数需要到官网上申请，地址：https://live.360.cn --用户中心。");
             return;
         }
 
         InteractGlobalManager.getInstance().setChannelId(cid);
+        InteractGlobalManager.getInstance().setAppKey(appKey);
+        InteractGlobalManager.getInstance().setSecretKey(secretKey);
         InteractGlobalManager.getInstance().setSessionId(MD5.encryptMD5(String.valueOf(System.currentTimeMillis()) + String.valueOf(new Random().nextInt())));
 
         mLogining = true;
@@ -281,18 +283,12 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
                 if (data != null && !TextUtils.isEmpty(data.getUserId())) {
                     InteractGlobalManager.getInstance().setUser(data);
 
-                    //TODO 注意：uSign和appKey必须放在业务服务端，切勿放在客户端。此处uSign和appKey放在Demo中仅用于演示。
-                    String uSign = MD5.encryptMD5("sname__" + cid + "uid__" + data.getUserId() + secretKey);
-                    InteractGlobalManager.getInstance().setAppKey(appKey);
-                    InteractGlobalManager.getInstance().setUSign(uSign);
-                    QHVCInteractiveKit.getInstance().setPublicServiceInfo(cid, InteractGlobalManager.getInstance().getAppKey(), InteractGlobalManager.getInstance().getUSign());
-
                     changeToLoginSuccessUI();
                     userIdEditText.setText(data.getUserId());
 
                     initIM();
                 } else {
-                    Toast.makeText(PrepareInteractBrocastActivity.this, "登录失败", Toast.LENGTH_SHORT).show();
+                    showToast("登录失败");
                 }
             }
 
@@ -303,7 +299,7 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
                 }
 
                 mLogining = false;
-                Toast.makeText(PrepareInteractBrocastActivity.this, "登录失败(" + errCode + ")", Toast.LENGTH_SHORT).show();
+                showToast("登录失败(" + errCode + ")");
             }
         });
     }
@@ -350,7 +346,7 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
         mHandler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(PrepareInteractBrocastActivity.this, toast, Toast.LENGTH_SHORT).show();
+                Toast.makeText(PrepareInteractBrocastActivity.this.getApplicationContext(), toast, Toast.LENGTH_SHORT).show();
             }
         });
     }

@@ -249,7 +249,7 @@ public class InteractIMManager {
         }
     }
 
-    public interface ConnectCallback extends QHVCResultCallback<String> {
+    public interface ConnectCallback {
 
         /**
          * 回调成功
@@ -264,7 +264,7 @@ public class InteractIMManager {
         void onError(int errorCode);
     }
 
-    public interface ChatRoomResultCallback extends QHVCResultCallback<String> {
+    public interface ChatRoomResultCallback {
 
         /**
          * 回调成功
@@ -428,7 +428,21 @@ public class InteractIMManager {
             qhvcimContext = new QHVCIMContext(imContext.getVendor(), imContext.getAppKey(), imContext.getAppSecret());
         }
 
-        QHVCIMClient.connect(imUser, qhvcimContext, uSign, null, callback);
+        QHVCIMClient.connect(imUser, qhvcimContext, uSign, null, new QHVCResultCallback<String>() {
+            @Override
+            public void onSuccess(String var1) {
+                if (callback != null) {
+                    callback.onSuccess(var1);
+                }
+            }
+
+            @Override
+            public void onError(int errorCode) {
+                if (callback != null) {
+                    callback.onError(errorCode);
+                }
+            }
+        });
     }
 
     public void disconnect() {
@@ -439,14 +453,42 @@ public class InteractIMManager {
         return mAtomicBoolean.get();
     }
 
-    public void joinChatRoom(String roomId, ChatRoomResultCallback callback) {
+    public void joinChatRoom(String roomId, final ChatRoomResultCallback callback) {
         mCurrentRoomId = roomId;
-        QHVCIMClient.joinChatRoom(roomId, 0, callback);
+        QHVCIMClient.joinChatRoom(roomId, 0, new QHVCResultCallback<String>() {
+            @Override
+            public void onSuccess(String var1) {
+                if (callback != null) {
+                    callback.onSuccess(var1);
+                }
+            }
+
+            @Override
+            public void onError(int errorCode) {
+                if (callback != null) {
+                    callback.onError(errorCode);
+                }
+            }
+        });
     }
 
-    public void quitChatRoom(ChatRoomResultCallback callback) {
+    public void quitChatRoom(final ChatRoomResultCallback callback) {
         mCurrentRoomId = "";
-        QHVCIMClient.quitChatRoom(callback);
+        QHVCIMClient.quitChatRoom(new QHVCResultCallback<String>() {
+            @Override
+            public void onSuccess(String var1) {
+                if (callback != null) {
+                    callback.onSuccess(var1);
+                }
+            }
+
+            @Override
+            public void onError(int errorCode) {
+                if (callback != null) {
+                    callback.onError(errorCode);
+                }
+            }
+        });
     }
 
     private void sendCommandToChatRoom(String roomId, String command, final SendMessageCallback callback) {

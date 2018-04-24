@@ -176,7 +176,7 @@ public class BaseActivity extends Activity implements View.OnTouchListener {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(BaseActivity.this, content, Toast.LENGTH_LONG).show();
+                Toast.makeText(BaseActivity.this.getApplicationContext(), content, Toast.LENGTH_LONG).show();
             }
         });
     }

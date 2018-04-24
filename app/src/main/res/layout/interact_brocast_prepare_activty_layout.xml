@@ -121,8 +121,7 @@
                   android:text="ilive_zs_xiaoyouxi" />-->
         <EditText
             android:id="@+id/interact_brocast_prepare_channel_id"
-            style="@style/record_prepare_edittext"
-            android:text="test_waterbear_mic" />
+            style="@style/record_prepare_edittext" />
     </RelativeLayout>
 
     <View

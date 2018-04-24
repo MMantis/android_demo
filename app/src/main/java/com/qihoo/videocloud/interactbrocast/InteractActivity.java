@@ -13,6 +13,7 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -78,13 +79,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     private int mCurrOrientation = Constants.EMode.EMODE_PORTRAIT; //当前方向--横屏或竖屏
 
     ///////////////For test 为了测试互动直播转推功能 ///////////////////
-    private static final String pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240530_OX";
-    private static final String pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240530_OX.flv";
+    private static final String pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240538_OX";
+    private static final String pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240538_OX.flv";
     ///////////////////////////////////////////////////////////////
 
     ///////////////// For test为了测试合流 //////////////////////////
     public static boolean OPEN_MERGE_STREAM = true;
-    public static final String mergeRtmp = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240531_OX";
+    public static final String mergeRtmp = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240533_OX";
     ///////////////////////////////////////////////////////////////
 
     private String myUid;
@@ -202,9 +203,6 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 mInteractEngine.setLowStreamVideoProfile(320, 180, 15, 180);
             }
             */
-        }
-        if (OPEN_MERGE_STREAM) {
-            setMixStreamInfo();
         }
         joinChannel();
     }
@@ -515,6 +513,12 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     }
 
     @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        onDestroy();
+    }
+
+    @Override
     protected void onDestroy() {
         // 取消IM回调
         InteractIMManager.getInstance().removeReceiveCommandistener(mOnReceiveCommandListener);
@@ -637,7 +641,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             mixStreamConfig.setIframeInterval(2);
             mixStreamConfig.setVideoBitrate(800); //800kbps
 
-            mInteractEngine.setMixStreamInfo(mixStreamConfig, QHVCInteractiveConstant.StreamLifeCycle.BIND_ROOM); //默认绑定房间
+            mInteractEngine.setMixStreamInfo(mixStreamConfig, QHVCInteractiveConstant.StreamLifeCycle.BIND_USER); //默认绑定房间
             QHVCInteractiveMixStreamRegion mixStreamRegion = new QHVCInteractiveMixStreamRegion();
 
             mixStreamRegion.setX(0);
@@ -921,6 +925,8 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         lp.topMargin = random.nextInt(mScreenHeight - h);
         lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         mVideoLayer.addView(videoView, -1, lp);
+        addMixStream(uid);
+        updateMixStream();
     }
 
     private void changeToFullView(MyVideoView videoView) {
@@ -1021,6 +1027,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         startPreview();
         startClick();
         mWorker.getInteractEngine().setEnableSpeakerphone(true); // 设置使用外放播放声音
+        if (OPEN_MERGE_STREAM) {
+            setMixStreamInfo();
+        }
     }
 
     @Override
@@ -1118,7 +1127,8 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
     @Override
     public void onFirstRemoteVideoFrame(String uid, int width, int height, int elapsed) {
-        addMixStream(uid);
+        Log.i("HCM","----onFirstRemoteVideoFrame----");
+//        addMixStream(uid);
     }
 
     //TODO 需考虑纯音频连麦情况
