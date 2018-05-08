@@ -197,11 +197,12 @@ public class LiveActivity extends Activity {
     private void initData() {
         Intent i = getIntent();
         haveAddress = i.getBooleanExtra("haveAddress", Boolean.FALSE);
+        businessId = i.getStringExtra("businessId");
+        channelId = i.getStringExtra("channelId");
         if (haveAddress) {
             url = i.getStringExtra("url");
-        } else {
-            businessId = i.getStringExtra("businessId");
             channelId = i.getStringExtra("channelId");
+        } else {
             sn = i.getStringExtra("sn");
         }
         autoDecoded = i.getBooleanExtra("autoDecoded", Boolean.FALSE);
@@ -282,7 +283,7 @@ public class LiveActivity extends Activity {
         });
         try {
             if (haveAddress) {
-                qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_LIVE, url, null);
+                qhvcPlayer.setDataSource(IQHVCPlayer.PLAYTYPE_LIVE, url, channelId);
             } else {
                 Map<String, Object> options = new HashMap<>();
                 //                options.put(IQHVCPlayerAdvanced.KEY_OPTION_MUTE, true);

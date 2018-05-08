@@ -60,6 +60,7 @@ public class LogAdapter extends BaseAdapter {
         TextView textView = (TextView) convertView;
         textView.setText(list.get(position));
         textView.setTextColor(context.getResources().getColor(textColorResId));
+        textView.setClickable(false);
         return convertView;
     }
 }

@@ -40,7 +40,13 @@ public class PartyItemBaseView extends RelativeLayout {
     }
 
     public void setVideoView(View view, int w, int h) {
+        videoBaseLayout.removeAllViews();
         if (view.getParent() == null) {
+            videoBaseLayout.addView(view, w, h);
+            videoView = view;
+        } else {
+            FrameLayout frameLayout = (FrameLayout) view.getParent();
+            frameLayout.removeAllViews();
             videoBaseLayout.addView(view, w, h);
             videoView = view;
         }

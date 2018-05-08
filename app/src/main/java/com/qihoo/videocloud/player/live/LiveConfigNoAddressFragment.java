@@ -152,16 +152,15 @@ public class LiveConfigNoAddressFragment extends Fragment implements View.OnClic
      */
     private void jump(boolean isHaveAddress, String sn) {
         Intent intent = new Intent(getContext(), LiveActivity.class);
+        intent.putExtra("businessId", etBusinessId.getText().toString().trim());
+        intent.putExtra("channelId", etChannelId.getText().toString().trim());
+        intent.putExtra("autoDecoded", rbConfigDecodedAuto.isChecked());
         if (isHaveAddress) {
             intent.putExtra("haveAddress", Boolean.TRUE);
             intent.putExtra("url", sn);
-            intent.putExtra("autoDecoded", rbConfigDecodedAuto.isChecked());
         } else {
             intent.putExtra("haveAddress", Boolean.FALSE);
-            intent.putExtra("businessId", etBusinessId.getText().toString().trim());
-            intent.putExtra("channelId", etChannelId.getText().toString().trim());
             intent.putExtra("sn", sn);
-            intent.putExtra("autoDecoded", rbConfigDecodedAuto.isChecked());
         }
 
         startActivity(intent);

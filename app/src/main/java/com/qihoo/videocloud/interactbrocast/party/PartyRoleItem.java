@@ -39,4 +39,13 @@ public class PartyRoleItem {
         return this.videoView;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof PartyRoleItem) {
+            PartyRoleItem role = (PartyRoleItem) obj;
+            return userId.equals(role.userId);
+        }
+        return false;
+    }
+
 }

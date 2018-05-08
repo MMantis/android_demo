@@ -21,6 +21,8 @@ public class LiveConfigHaveAddressFragment extends Fragment implements View.OnCl
     private RadioButton rbConfigDecodedSoft;
     private ImageView ivPlay;
     private EditText etUrl;
+    private EditText etBusinessId;
+    private EditText etChannelId;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -38,6 +40,8 @@ public class LiveConfigHaveAddressFragment extends Fragment implements View.OnCl
         ivPlay = (ImageView) view.findViewById(R.id.iv_play);
         ivPlay.setOnClickListener(this);
         etUrl = (EditText) getView().findViewById(R.id.et_url);
+        etBusinessId = (EditText) view.findViewById(R.id.et_busuness_id);
+        etChannelId = (EditText) view.findViewById(R.id.et_channel_id);
     }
 
     @Override
@@ -45,9 +49,12 @@ public class LiveConfigHaveAddressFragment extends Fragment implements View.OnCl
         switch (v.getId()) {
             case R.id.iv_play: {
                 Intent intent = new Intent(getContext(), LiveActivity.class);
+                intent.putExtra("businessId", etBusinessId.getText().toString().trim());
+                intent.putExtra("channelId", etChannelId.getText().toString().trim());
                 intent.putExtra("haveAddress", Boolean.TRUE);
                 intent.putExtra("url", etUrl.getText().toString().trim());
                 intent.putExtra("autoDecoded", rbConfigDecodedAuto.isChecked());
+                intent.putExtra("channelId", getString(R.string.config_cid));
 
                 startActivity(intent);
             }

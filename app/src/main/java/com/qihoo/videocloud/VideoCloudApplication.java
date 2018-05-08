@@ -17,6 +17,7 @@ import com.qihoo.livecloud.sdk.QHVCSdk;
 import com.qihoo.livecloud.sdk.QHVCSdkConfig;
 import com.qihoo.livecloud.sdk.QHVCServerAddress;
 import com.qihoo.livecloud.tools.Constants;
+import com.qihoo.livecloud.tools.DeviceIDUtils;
 import com.qihoo.livecloud.tools.Stats;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.beauty.BeautyHelper;
@@ -60,14 +61,15 @@ public class VideoCloudApplication extends Application {
         // 调试信息
         DebugUtils debugUtils = new DebugUtils();
         debugUtils.setWriteLogs(true)
-                .setPlayerLogLevel(Constants.ELogLevel.LOG_LEVEL_DEBUG)
-                .setTransportLogLevel(Constants.ELogLevel.LOG_LEVEL_DEBUG);
+                .setPlayerLogLevel(Constants.ELogLevel.LOG_LEVEL_FATAL)
+                .setTransportLogLevel(Constants.ELogLevel.LOG_LEVEL_TRACE);
 
         // 直播云SDK配置
         QHVCSdkConfig.Builder builder = new QHVCSdkConfig.Builder(this)
                 .setBusinessId(getResources().getString(R.string.config_bid))
                 .setAppVersion("0.0")
-                .setUserId(getResources().getString(R.string.config_uid))
+                .setMachineId(DeviceIDUtils.getIMEI2(this))
+                .setUserId(getResources().getString(R.string.config_uid))//可选项
                 .setDebugUtils(debugUtils);
 
         /**

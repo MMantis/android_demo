@@ -392,7 +392,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
                     @Override
                     public void onSuccess(InteractRoomModel data) {
-                        guestStartPreview();
+                        setClientRoleToGuest();
                     }
 
                     @Override
@@ -403,13 +403,17 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
     }
 
-    private void guestStartPreview() {
-        startPreview();
+    private void setClientRoleToGuest() {
         mInteractEngine.setClientRole(QHVCInteractiveConstant.CLIENT_ROLE_BROADCASTER);
-        mCurrState = STATE_GUEST;
-        notifyIMGuestJoin();
         invitingGuestsButton.setText("互动中");
         invitingGuestsButton.setClickable(false);
+
+    }
+
+    private void guestStartPreview() {
+        startPreview();
+        mCurrState = STATE_GUEST;
+        notifyIMGuestJoin();
         myCommonButton.setViewVisible(R.id.btn_mute_audio, View.VISIBLE);
         if (talkType != InteractConstant.TALK_TYPE_AUDIO) {
             myCommonButton.setViewVisible(R.id.btn_switch_camera, View.VISIBLE);
@@ -668,8 +672,8 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         InteractCallback.getInstance().addCallBack(InteractAudienceActivity.this);
 
         Map<String, String> optionInfo = new HashMap<>(); //TODO
-        optionInfo.put("push_addr", pushAddr);
-        optionInfo.put("pull_addr", pullAddr);
+        optionInfo.put(QHVCInteractiveConstant.EngineOption.PUSH_ADDR, pushAddr);
+        optionInfo.put(QHVCInteractiveConstant.EngineOption.PULL_ADDR, pullAddr);
         mWorker.loadEngine(roomId, myUid, optionInfo);
     }
 
@@ -851,7 +855,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                         mWorker.getInteractEngine().setEnableSpeakerphone(true); // 设置使用外放播放声音
                         timeHandler.postDelayed(timeClickRunnable, 1000);
                         if (data.getUserIdentity() == InteractConstant.USER_IDENTITY_GUEST) {/*嘉宾异常退出的情况，需要恢复嘉宾身份*/
-                            guestStartPreview();
+                            setClientRoleToGuest();
                         }
                     }
 
@@ -946,6 +950,14 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
     @Override
     public void onLocalVideoStats(final QHVCInteractiveEventHandler.LocalVideoStats stats) {
+    }
+
+    @Override
+    public void onChangeClientRoleSuccess(int clientRole) {
+        if (clientRole == QHVCInteractiveConstant.CLIENT_ROLE_BROADCASTER) {
+            //观众切成嘉宾（主播）
+            guestStartPreview();
+        }
     }
 
     public void doRenderRemoteUi(final String uid) {

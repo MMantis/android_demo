@@ -9,9 +9,11 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.PixelFormat;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -20,6 +22,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -32,10 +35,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.qihoo.livecloud.play.GifRecordConfig;
+import com.qihoo.livecloud.play.VideoRecordConfig;
 import com.qihoo.livecloud.play.callback.PlayerCallback;
 import com.qihoo.livecloud.sdk.QHVCSdk;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.NetUtil;
+import com.qihoo.livecloud.utils.FileUtils;
 import com.qihoo.livecloud.utils.PlayerLogger;
 import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.IQHVCPlayer;
@@ -50,10 +55,8 @@ import com.qihoo.videocloud.view.QHVCTextureView;
 import com.qihoo.videocloud.widget.ViewHeader;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +82,14 @@ public class VodActivity extends Activity implements View.OnClickListener {
     private QHVCTextureView playView;
     private RelativeLayout rlPlayerContainer;
     private ViewHeader viewHeaderMine;
+    private TextView tvHeaderCenter;
+
+    private boolean isRecording = false;
+    private String videoRecordFilePath = null;
+    private long recordBeginTick = 0;
+    private View btnCut;
+    private View btnRecord;
+
     private ImageView btnPlay;
     private TextView tvPlayTime;
 
@@ -126,6 +137,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
     private float[] mPlayRate = {
             1f, 1.5f, 2f,
     };
+    private boolean mNeedStartPlayer = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,11 +148,14 @@ public class VodActivity extends Activity implements View.OnClickListener {
 
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
         setContentView(R.layout.activity_vod);
-        checkSelfPermissionAndRequest(Manifest.permission.WRITE_EXTERNAL_STORAGE, PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE);
-
         initView();
         initData();
-        vodProxy();
+        boolean checkResult = checkSelfPermissionAndRequest(Manifest.permission.WRITE_EXTERNAL_STORAGE, PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE);
+        if (checkResult) {
+            vodProxy();
+        } else {
+            mNeedStartPlayer = true;
+        }
     }
 
     private void initData() {
@@ -167,6 +182,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
                 finish();
             }
         });
+        tvHeaderCenter = viewHeaderMine.getCenterTitle();
 
         lvLog = (ListView) findViewById(R.id.lv_log);
         if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
@@ -233,6 +249,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
 
                             currentShowModel = SHOW_MODEL_PORT;
                             portZoomIn();
+                            initRecordBtnView();
                         } else {
 
                             currentShowModel = SHOW_MODEL_LAND;
@@ -248,6 +265,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
 
                     currentShowModel = SHOW_MODEL_PORT_SMALL;
                     portZoomOut();
+                    initRecordBtnView();
                 } else if (currentShowModel == SHOW_MODEL_LAND) {
 
                     currentShowModel = SHOW_MODEL_PORT_SMALL;
@@ -261,6 +279,106 @@ public class VodActivity extends Activity implements View.OnClickListener {
         changeSpeed = (ImageView) findViewById(R.id.change_speed);
         changeSpeed.setOnClickListener(this);
         mChangeMessage = (TextView) findViewById(R.id.vod_changeMessage);
+
+        initRecordBtnView();
+    }
+
+    private void initRecordBtnView() {
+        if (currentShowModel == SHOW_MODEL_LAND || currentShowModel == SHOW_MODEL_PORT) {
+            btnCut = findViewById(R.id.btn_cut);
+            btnCut.setVisibility(View.VISIBLE);
+            btnCut.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (qhvcPlayer != null && (qhvcPlayer.isPlaying() || qhvcPlayer.isPaused())) {
+
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String recordRootPath = AndroidUtil.getAppDir() + "RecorderLocal" + File.separator;
+                                FileUtils.createDir(recordRootPath);
+
+                                String path = recordRootPath + AndroidUtil.getNewFileName(System.currentTimeMillis()) + ".bmp";
+                                boolean ret = qhvcPlayer.snapshot(path);
+                                Log.d(TAG, "qhvcPlayer.snapshot ret=" + ret + " path=" + path);
+                                if (ret) {
+                                    File f = new File(path);
+                                    if (f != null && f.exists()) {
+                                        Uri uri = Uri.fromFile(f);
+                                        getApplicationContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
+                                    }
+
+                                    VodActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Toast.makeText(VodActivity.this, "截图成功 已经保存到相册", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                }
+                            }
+                        }).start();
+                    } else {
+                        Toast.makeText(VodActivity.this, "当前状态 不能截图", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+            btnRecord = findViewById(R.id.btn_record);
+            btnRecord.setVisibility(View.VISIBLE);
+            btnRecord.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    boolean ret = false;
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        ret = true;
+                        Log.d(TAG, "btn record. ACTION_UP");
+                        if (isRecording) {
+                            if (stopRecorder()) {
+                                File f = new File(videoRecordFilePath);
+                                if (f != null && f.exists()) {
+                                    Uri uri = Uri.fromFile(f);
+                                    getApplicationContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
+                                }
+
+                                Toast.makeText(VodActivity.this, "录制成功 已经保存到相册", Toast.LENGTH_SHORT).show();
+                            }
+
+                            isRecording = false;
+                            videoRecordFilePath = null;
+                            recordBeginTick = 0;
+                        }
+                    }
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        ret = true;
+
+                        Log.d(TAG, "btn record. ACTION_DOWN");
+                        String recordRootPath = AndroidUtil.getAppDir() + "RecorderLocal" + File.separator;
+                        FileUtils.createDir(recordRootPath);
+
+                        String path = recordRootPath + AndroidUtil.getNewFileName(System.currentTimeMillis()) + ".mp4";
+                        if (startRecorderVideo(path)) {
+                            isRecording = true;
+                            videoRecordFilePath = path;
+                            recordBeginTick = System.currentTimeMillis();
+                        } else {
+                            Toast.makeText(VodActivity.this, "录制 初始化失败", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    return ret;
+                }
+            });
+            tvHeaderCenter.setVisibility(View.VISIBLE);
+        } else {
+            if (tvHeaderCenter != null) {
+                tvHeaderCenter.setVisibility(View.GONE);
+            }
+            if (btnCut != null) {
+                btnCut.setVisibility(View.GONE);
+            }
+            if (btnRecord != null) {
+                btnRecord.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void vodProxy() {
@@ -457,6 +575,17 @@ public class VodActivity extends Activity implements View.OnClickListener {
                 tvPlayTime.setText(AndroidUtil.getTimeString(progress));
                 tvDuration.setText(AndroidUtil.getTimeString(total));
 
+                if (recordBeginTick > 0) {
+                    tvHeaderCenter.setVisibility(View.VISIBLE);
+                    tvHeaderCenter.setText(AndroidUtil.getTimeString(System.currentTimeMillis() - recordBeginTick));
+                    Drawable drawableLeft = getResources().getDrawable(R.drawable.record_circle);
+                    tvHeaderCenter.setCompoundDrawablesWithIntrinsicBounds(drawableLeft, null, null, null);
+                    tvHeaderCenter.setCompoundDrawablePadding(7);
+                } else {
+                    tvHeaderCenter.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
+                    tvHeaderCenter.setVisibility(View.GONE);
+                }
+
                 showLog();
             }
         });
@@ -539,6 +668,10 @@ public class VodActivity extends Activity implements View.OnClickListener {
 
     private void playerClose() {
         if (qhvcPlayer != null) {
+
+            if (isRecording) {
+                stopRecorder();
+            }
             qhvcPlayer.stop();
             qhvcPlayer.release();
             qhvcPlayer = null;
@@ -630,12 +763,8 @@ public class VodActivity extends Activity implements View.OnClickListener {
         super.onBackPressed();
     }
 
-    private void startRecorder() {
-        Date date = new Date(System.currentTimeMillis());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        String fileName = dateFormat.format(date) + ".gif";
-        String filePath = new File(Environment.getExternalStorageDirectory(), fileName).getAbsolutePath();
-
+    private boolean startRecorderGif(String filePath) {
+        int ret = -1;
         if (qhvcPlayer != null) {
 
             Map<String, Object> map = qhvcPlayer.getMediaInformation();
@@ -646,21 +775,49 @@ public class VodActivity extends Activity implements View.OnClickListener {
             config.setOutputFps(5);
             config.setSampleInterval(100);
 
-            int ret = qhvcPlayer.startRecorder(filePath, IQHVCPlayerAdvanced.RECORDER_FORMAT_GIF, config, new IQHVCPlayerAdvanced.OnRecordListener() {
+            ret = qhvcPlayer.startRecorder(filePath, IQHVCPlayerAdvanced.RECORDER_FORMAT_GIF, config, new IQHVCPlayerAdvanced.OnRecordListener() {
                 @Override
                 public void onRecordSuccess() {
-                    Toast.makeText(VodActivity.this, "record success", Toast.LENGTH_SHORT).show();
+                    Logger.d(TAG, "record gif success");
                 }
             });
             Logger.d(TAG, "start recorder. ret: " + ret);
         }
+        return (ret == 0);
     }
 
-    private void stopRecorder() {
+    private boolean startRecorderVideo(String filePath) {
+        int ret = -1;
+        if (qhvcPlayer != null && qhvcPlayer.isPlaying()) {
+
+            Map<String, Object> map = qhvcPlayer.getMediaInformation();
+            Logger.d(TAG, "media infomation: " + map.toString());
+            VideoRecordConfig config = new VideoRecordConfig();
+            config.setWidth((int) map.get(IQHVCPlayer.KEY_MEDIA_INFO_VIDEO_WIDTH_INT));
+            config.setHeight((int) map.get(IQHVCPlayer.KEY_MEDIA_INFO_VIDEO_HEIGHT_INT));
+            config.setVideoBitrate((int) map.get(IQHVCPlayer.KEY_MEDIA_INFO_BITRATE_INT));
+            config.setAudioSampleRate(44100);
+            config.setAudioChannel(2);
+            config.setAudioBitrate(32000 / 8);//32kB
+
+            ret = qhvcPlayer.startRecorder(filePath, IQHVCPlayerAdvanced.RECORDER_FORMAT_MP4, config, new IQHVCPlayerAdvanced.OnRecordListener() {
+                @Override
+                public void onRecordSuccess() {
+                    Logger.d(TAG, "record mp4 success");
+                }
+            });
+            Logger.d(TAG, "start recorder. ret: " + ret);
+        }
+        return (ret == 0);
+    }
+
+    private boolean stopRecorder() {
+        int ret = -1;
         if (qhvcPlayer != null) {
-            int ret = qhvcPlayer.stopRecorder();
+            ret = qhvcPlayer.stopRecorder();
             Logger.d(TAG, "stop recorder. ret: " + ret);
         }
+        return (ret == 0);
     }
 
     public boolean checkSelfPermissionAndRequest(String permission, int requestCode) {
@@ -686,6 +843,10 @@ public class VodActivity extends Activity implements View.OnClickListener {
             case PERMISSION_REQ_ID_WRITE_EXTERNAL_STORAGE: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (mNeedStartPlayer) {
+                        mNeedStartPlayer = false;
+                        vodProxy();
+                    }
                 }
             }
                 break;
@@ -713,6 +874,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
             View popView = LayoutInflater.from(this).inflate(R.layout.activity_vod_change_speedlayout, null);
             initChangeSpeedPopWindowView(popView);
             mChangeSpeedPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
+            mChangeSpeedPopWindow.setBackgroundDrawable(new ColorDrawable(0));
             mChangeSpeedPopWindow.setOutsideTouchable(true);
             mChangeSpeedPopWindow.setFocusable(true);
             mChangeSpeedPopWindow.setTouchable(true);
@@ -750,6 +912,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
             View popView = LayoutInflater.from(this).inflate(R.layout.activity_vod_resolution_ratio_layout, null);
             initResolutionRatioPopWindowView(popView);
             mResolutionRatioPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
+            mResolutionRatioPopWindow.setBackgroundDrawable(new ColorDrawable(0));
             mResolutionRatioPopWindow.setOutsideTouchable(true);
             mResolutionRatioPopWindow.setFocusable(true);
             mResolutionRatioPopWindow.setTouchable(true);
@@ -828,6 +991,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
         speed2_0.setTextColor(getResources().getColor(R.color.white));
         view.setTextColor(getResources().getColor(R.color.change_speed_textclour));
         qhvcPlayer.setPlayBackRate(mPlayRate[index]);
+        mChangeSpeedPopWindow.dismiss();
     }
 
     private void setesoulutionRRatioPopSelect(TextView view, int index) {
@@ -884,5 +1048,7 @@ public class VodActivity extends Activity implements View.OnClickListener {
                 }
             });
         }
+
+        mResolutionRatioPopWindow.dismiss();
     }
 }

@@ -6,10 +6,14 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,7 +24,7 @@ import com.qihoo.livecloud.interact.api.QHVCInteractiveUtils;
 import com.qihoo.livecloud.tools.Constants;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloudrefactor.R;
-import com.qihoo.videocloud.interactbrocast.adapter.PartyGridViewAdapter;
+import com.qihoo.videocloud.interactbrocast.adapter.InteractPartyRecyclerViewAdapter;
 import com.qihoo.videocloud.interactbrocast.data.InteractGlobalManager;
 import com.qihoo.videocloud.interactbrocast.main.InteractCallBackEvent;
 import com.qihoo.videocloud.interactbrocast.main.InteractCallback;
@@ -30,17 +34,18 @@ import com.qihoo.videocloud.interactbrocast.modle.InteractRoomModel;
 import com.qihoo.videocloud.interactbrocast.modle.InteractUserModel;
 import com.qihoo.videocloud.interactbrocast.net.InteractServerApi;
 import com.qihoo.videocloud.interactbrocast.party.PartyRoleItem;
+import com.qihoo.videocloud.interactbrocast.ui.MyCommonButton;
 import com.qihoo.videocloud.utils.LibTaskController;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import static com.qihoo.videocloud.interactbrocast.main.InteractConstant.USER_IDENTITY_ANCHOR;
 
 /**
  * Created by liuyanqing on 2018/3/7.
@@ -51,12 +56,12 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     public static final int MODE_AUDIENCE = 1; //观众模式
     public static final int MODE_PLAYER = 2; //参与轰趴模式
 
-    private GridView mPartyGridView;
-    private PartyGridViewAdapter mGridAdapter;
+    private RecyclerView mPartyGridView;
+    private InteractPartyRecyclerViewAdapter mGridAdapter;
 
     private ArrayList<PartyRoleItem> mAllShowData = new ArrayList<>();
-    private Hashtable<String, PartyRoleItem> mCurrUserHash = new Hashtable<>(); //存放当前房间内参与轰趴的主播
-    private ScheduledExecutorService mExecutorService = null;
+    //    private Hashtable<String, PartyRoleItem> mCurrUserList = new Hashtable<>(); //存放当前房间内参与轰趴的主播
+    private List<InteractUserModel> mCurrUserList = new ArrayList<>();
 
     private int currPlayMode; //当前模式(参与模式 或 观众模式)
 
@@ -71,28 +76,30 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     private String roomName;
     private String roomId;
     private int onlineNum;
+    private TextView roomNameTextView;
+    private TextView roomIDTextView;
+    private TextView onlineNumTextView;
+    private MyCommonButton myCommonButton;
 
     //Test Todo
     TextView joinBtn;
     TextView leaveBtn;
+    private ImageView exitRoom;
+    private int talkType;/*音频或者视频房间*/
 
     //连麦
     private WorkerThread mWorker;
     private QHVCInteractiveKit mInteractEngine;
 
+    private int interactTimeCount = 0;/*计时*/
+    private ExecutorService workThreadPoolExecutor = Executors.newSingleThreadExecutor();;/*异步线程*/
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        setContentView(R.layout.activity_party_main_layout);
-
         initData();
         initView();
-
         initWorker();
-
         loadInteractEngine();
     }
 
@@ -105,12 +112,41 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     @Override
     protected void onDestroy() {
         leaveChannel();
+        leaveRoom();
         super.onDestroy();
     }
 
+    private void leaveRoom() {
+        if (workThreadPoolExecutor != null) {
+            workThreadPoolExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    InteractServerApi.userLeaveRoom(myUid, roomId,
+                            new InteractServerApi.ResultCallback<InteractRoomModel>() {
+                                @Override
+                                public void onSuccess(InteractRoomModel data) {
+                                    showToast("离开房间");
+                                    timeHandler.removeCallbacks(timeClickRunnable);
+                                }
+
+                                @Override
+                                public void onFailed(int errCode, String errMsg) {
+                                    timeHandler.removeCallbacks(timeClickRunnable);
+                                }
+                            });
+                }
+            });
+        }
+    }
+
     private void initView() {
-        mPartyGridView = (GridView) findViewById(R.id.party_gridView);
-        mGridAdapter = new PartyGridViewAdapter(PartyMainActivity.this, R.layout.party_gridview_item_layout, mAllShowData);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setContentView(R.layout.activity_party_main_layout);
+        mPartyGridView = (RecyclerView) findViewById(R.id.party_gridView);
+        GridLayoutManager mgr = new GridLayoutManager(PartyMainActivity.this, 2);
+        mPartyGridView.setLayoutManager(mgr);
+        mGridAdapter = new InteractPartyRecyclerViewAdapter(mAllShowData);
         int itemw = mScreenWidth / 2;
         int itemh = (mScreenHeight - getStatusBarHeight() - getNavigationHeight()) / 3;
         mGridAdapter.setItemWidth(itemw);
@@ -132,6 +168,76 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
                 joinBtn.setVisibility(View.GONE);
                 break;
         }
+
+        exitRoom = (ImageView) findViewById(R.id.interact_close_room);
+        exitRoom.setOnClickListener(this);
+        roomNameTextView = (TextView) findViewById(R.id.interact_room_name);
+        roomNameTextView.setText(roomName);
+        roomIDTextView = (TextView) findViewById(R.id.interact_room_id);
+        roomIDTextView.setText(roomId);
+        onlineNumTextView = (TextView) findViewById(R.id.interact_room_online_num);
+
+        View v = findViewById(R.id.common_btn);
+        myCommonButton = new MyCommonButton(v) {
+            @Override
+            public void doOnClickSwitchCamera() {
+                doSwitchCamera();
+            }
+
+            @Override
+            public void doOnClickMuteLocalAudio(ImageView view) {
+                doMuteLocalAudio(view);
+            }
+
+            @Override
+            public void doOnClickSwitchAudioOutput(ImageView btn) {
+                doSwitchAudioOutput(btn);
+            }
+
+            @Override
+            public void doOnClickBeauty(ImageView view) {
+
+            }
+
+            @Override
+            public void doOnClickFaceU(ImageView view) {
+
+            }
+
+            @Override
+            public void doOnClickEnableVideo(ImageView view) {
+                if (talkType == InteractConstant.TALK_TYPE_AUDIO) {
+                    showToast("该房间为音频房间");
+                    return;
+                }
+                doSwitchToSendLocalVideo(view);
+            }
+
+            @Override
+
+            public void doOnClickFullScreen(ImageView view) {
+                //                doFullScreen(view);
+            }
+
+            @Override
+            public void doOnClickFilter(ImageView view) {
+
+            }
+
+        };
+
+        if (currPlayMode == MODE_AUDIENCE) {
+            myCommonButton.setViewVisible(R.id.btn_mute_audio, View.GONE);
+            myCommonButton.setViewVisible(R.id.btn_switch_camera, View.GONE);
+            myCommonButton.setViewVisible(R.id.btn_enable_video, View.GONE);
+        }
+
+        //todo 暂时注掉美颜faceU功能按钮
+        myCommonButton.setViewVisible(R.id.btn_beauty, View.GONE);
+        myCommonButton.setViewVisible(R.id.btn_faceu, View.GONE);
+        myCommonButton.setViewVisible(R.id.btn_filter, View.GONE);
+        myCommonButton.setViewVisible(R.id.btn_full_screen, View.GONE);
+
     }
 
     private void initData() {
@@ -141,6 +247,7 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
             roomName = iteractPartyRoom.getRoomName();
             roomId = iteractPartyRoom.getRoomId();
             onlineNum = iteractPartyRoom.getOnlineNum();
+            talkType = iteractPartyRoom.getTalkType();
         }
 
         int playMode = getIntent().getIntExtra(InteractConstant.INTENT_EXTRA_USER_IDENTITY, InteractConstant.USER_IDENTITY_AUDIENCE);
@@ -148,7 +255,7 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
             case InteractConstant.USER_IDENTITY_AUDIENCE:
                 this.currPlayMode = MODE_AUDIENCE;
                 break;
-            case InteractConstant.USER_IDENTITY_ANCHOR:
+            case USER_IDENTITY_ANCHOR:
                 this.currPlayMode = MODE_PLAYER;
                 break;
         }
@@ -164,12 +271,14 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     }
 
     private void startParty() {
-        initWorker();
-        mInteractEngine = mWorker.getInteractEngine();
-
         if (currPlayMode == MODE_PLAYER) {
-            createMyself();
             doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_BROADCASTER);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    createMyself();
+                }
+            });
         } else {
             doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_AUDIENCE);
         }
@@ -179,7 +288,6 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
             mInteractEngine.enableDualStreamMode(true); //开启双流模式（即大小流）
             mInteractEngine.setLowStreamVideoProfile(180, 320, 15, 180);
         }
-
         joinChannel();
     }
 
@@ -188,32 +296,33 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
             mSelfRoleItem = new PartyRoleItem(myUid, mDefaultImage);
             if (selfView == null) {
                 selfView = QHVCInteractiveUtils.CreateRendererView(PartyMainActivity.this);
+                if (selfView != null) {
+                    if (selfView instanceof SurfaceView) {
+                        SurfaceView surfaceV = (SurfaceView) selfView;
+                        surfaceV.setZOrderOnTop(true);
+                        surfaceV.setZOrderMediaOverlay(true);
+                    }
+                }
             }
-            //if (selfView instanceof SurfaceView) {
-            //    SurfaceView surfaceV = (SurfaceView) selfView;
-            //    surfaceV.setZOrderOnTop(true);
-            //    surfaceV.setZOrderMediaOverlay(true);
-            //}
 
             mSelfRoleItem.setVideoView(selfView);
-
-            mCurrUserHash.put(myUid, mSelfRoleItem);
+            if (!mCurrUserList.contains(mSelfUserModel)) {
+                if (currPlayMode == MODE_PLAYER) {
+                    mSelfUserModel.setIdentity(USER_IDENTITY_ANCHOR);
+                }
+                mCurrUserList.add(mSelfUserModel);
+            }
         }
-        startPreview();
+        mAllShowData.add(mSelfRoleItem);
+        mGridAdapter.notifyDataSetChanged();
 
-        //        mAllShowData.add(selfItem);
-        //
-        //        for (int i = 0; i < 5; i++) {
-        //            PartyRoleItem item = new PartyRoleItem("0", mDefaultImage);
-        //            mAllShowData.add(item);
-        //        }
-        //
-        //        mGridAdapter.notifyDataSetChanged();
     }
 
     private void stopPreview() {
         if (mSelfRoleItem != null) {
-            mCurrUserHash.remove(myUid);
+            mCurrUserList.remove(mSelfUserModel);
+            mAllShowData.remove(mSelfRoleItem);
+            mGridAdapter.notifyDataSetChanged();
             if (mWorker != null) {
                 mWorker.preview(false, mSelfRoleItem.getVideoView(), myUid);
             }
@@ -235,6 +344,7 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
 
         mWorker.start();
         mWorker.waitForReady();
+        mInteractEngine = mWorker.getInteractEngine();
     }
 
     private void loadInteractEngine() {
@@ -266,25 +376,9 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
         }
     }
 
-    /**
-     * 自动查询房间用户列表， 暂定间隔10S
-     */
-    private void autoQueryUserList() {
-        if (mExecutorService == null) {
-            mExecutorService = Executors.newScheduledThreadPool(1);
-
-            ScheduledFuture scheduledFuture = mExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    getUserListFromServer();
-                }
-            }, 0, 3, TimeUnit.SECONDS);
-        }
-    }
-
     private void getUserListFromServer() {
         int[] userIdentitys = new int[] {
-                InteractConstant.USER_IDENTITY_ANCHOR,
+                USER_IDENTITY_ANCHOR,
                 InteractConstant.USER_IDENTITY_GUEST
         };
 
@@ -292,35 +386,16 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
                 new InteractServerApi.ResultCallback<List<InteractUserModel>>() {
 
                     @Override
-                    public void onSuccess(List<InteractUserModel> data) {
-
-                        mAllShowData.clear();
-                        if (data != null && data.size() > 0) {
-                            PartyRoleItem roleItem;
-                            for (InteractUserModel userModel : data) {
-                                if (mCurrUserHash.containsKey(userModel.getUserId())) {
-                                    roleItem = mCurrUserHash.get(userModel.getUserId());
-                                } else {
-                                    roleItem = new PartyRoleItem(userModel.getUserId(), mDefaultImage);
-                                    View videoView = QHVCInteractiveUtils.CreateRendererView(PartyMainActivity.this);
-                                    roleItem.setVideoView(videoView);
-
-                                    //TODO
-                                    mInteractEngine.setupRemoteVideo(videoView, QHVCInteractiveConstant.RenderMode.RENDER_MODE_HIDDEN,
-                                            userModel.getUserId(), "");
+                    public void onSuccess(final List<InteractUserModel> data) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (data != null) {
+                                    onlineNumTextView.setText(data.size()+"");
                                 }
-                                mAllShowData.add(roleItem);
                             }
-
-                            if (mGridAdapter != null) {
-                                mGridAdapter.notifyDataSetChanged();
-                            }
-                        }
-
-                        mCurrUserHash.clear();
-                        for (PartyRoleItem roleItem : mAllShowData) {
-                            mCurrUserHash.put(roleItem.getUserId(), roleItem);
-                        }
+                        });
+                        checkNubmerhasChange(data);
                     }
 
                     @Override
@@ -328,6 +403,90 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
                         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ", getRoomUserList failed.. errCode: " + errCode + ", errMsg: " + errMsg);
                     }
                 });
+    }
+
+    private void checkNubmerhasChange(List<InteractUserModel> data) {
+        boolean isChange = true;
+        if (mCurrUserList.size() == data.size() && mCurrUserList.containsAll(data)) {
+            isChange = false;
+
+        }
+        /*IM发送通知，房间成员已经改变*/
+        if (isChange) {
+            showToast("房间人员变化");
+            changeUI(data);
+        }
+    }
+
+    private void changeUI(List<InteractUserModel> newList) {
+        for (InteractUserModel user : newList) {/*增员*/
+            if (!mCurrUserList.contains(user)) {
+                addRemoteUser(user);
+            }
+        }
+        if (mCurrUserList != null) {/*减员*/
+            for (InteractUserModel userModel : mCurrUserList) {
+                if (!newList.contains(userModel)) {
+                    removeRemoteUser(userModel);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void addRemoteUser(final InteractUserModel user) {/*增员*/
+        if (user.getUserId().equals(myUid)) {/*自己不再此做处理*/
+            return;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                PartyRoleItem roleItem = new PartyRoleItem(user.getUserId(), mDefaultImage);
+                View videoView = QHVCInteractiveUtils.CreateRendererView(PartyMainActivity.this);
+                if (videoView instanceof SurfaceView) {
+                    SurfaceView surfaceV = (SurfaceView) videoView;
+                    surfaceV.setZOrderOnTop(true);
+                    surfaceV.setZOrderMediaOverlay(true);
+                }
+                roleItem.setVideoView(videoView);
+                mCurrUserList.add(user);
+                mAllShowData.add(roleItem);
+                mInteractEngine.setupRemoteVideo(videoView, QHVCInteractiveConstant.RenderMode.RENDER_MODE_HIDDEN,
+                        user.getUserId(), "");
+                if (mGridAdapter != null) {
+                    mGridAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+
+    }
+
+    private void removeRemoteUser(final InteractUserModel user) {
+        if (user.getUserId().equals(myUid)) {/*自己不再此做处理*/
+            return;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mCurrUserList.remove(user);
+                PartyRoleItem removeRoleItem = null;
+                for (PartyRoleItem roleItem : mAllShowData) {
+                    if (roleItem.getUserId().equals(user.getUserId())) {
+                        removeRoleItem = roleItem;
+                        break;
+                    }
+                }
+                if (removeRoleItem != null) {
+                    if (mInteractEngine != null) {
+                        mInteractEngine.removeRemoteVideo("", removeRoleItem.getUserId());
+                    }
+                    mAllShowData.remove(removeRoleItem);
+                }
+                if (mGridAdapter != null) {
+                    mGridAdapter.notifyDataSetChanged();
+                }
+            }
+        });
     }
 
     private void leaveChannel() {
@@ -344,16 +503,16 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     }
 
     private void exitWorker() {
-        if (mExecutorService != null) {
-            mExecutorService.shutdown();
+        if (workThreadPoolExecutor != null) {
+            workThreadPoolExecutor.shutdown();
             try {
-                mExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+                workThreadPoolExecutor.awaitTermination(Long.MAX_VALUE,
+                        TimeUnit.DAYS);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            mExecutorService = null;
+            workThreadPoolExecutor = null;
         }
-
         if (mWorker != null) {
             mWorker.exit();
         }
@@ -383,7 +542,7 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
 
             @Override
             public void onSuccess(InteractRoomModel data) {
-                getUserListFromServer();
+                //                getUserListFromServer();
             }
 
             @Override
@@ -396,17 +555,67 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
 
     @Override
     public void onLoadEngineSuccess(String roomId, String uid) {
-        //do nothing
+        startParty();
     }
 
     @Override
     public void onJoinChannelSuccess(String channel, String uid, int elapsed) {
-        if (currPlayMode == MODE_AUDIENCE) {
-            joinRoomToServer();
+        mInteractEngine.setEnableSpeakerphone(false);
+        joinRoomToServer();
+        if (currPlayMode == MODE_PLAYER) {
+            startPreview();
+        } else {
+            getUserListFromServer();/*主动请求一次*/
         }
-        autoQueryUserList();
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ", onJoinChannelSuccess(), channel: " + channel + ", uid: " + uid);
+        startClick();
     }
+
+    /*开始心态*/
+    private void startClick() {
+        timeHandler.postDelayed(timeClickRunnable, 1000);
+    }
+
+    /*停止心跳*/
+    private void stopClick() {
+        timeHandler.removeCallbacks(timeClickRunnable);
+    }
+
+    Handler timeHandler = new Handler();
+    Runnable timeClickRunnable = new Runnable() {
+        @Override
+        public void run() {
+            interactTimeCount++;
+            timeHandler.postDelayed(this, 1000);
+            if (interactTimeCount % 6 == 0) {
+                /*心跳*/
+                if (workThreadPoolExecutor != null) {
+                    workThreadPoolExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            InteractServerApi.userHeart(myUid, roomId, new InteractServerApi.ResultCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void data) {
+
+                                }
+
+                                @Override
+                                public void onFailed(int errCode, String errMsg) {
+
+                                }
+                            });
+                        }
+                    });
+
+                }
+
+            }
+            //            /*定时刷成员列表，监听人员变化，三秒一次*/
+            if (interactTimeCount % 3 == 0) {
+                getUserListFromServer();
+            }
+        }
+    };
 
     @Override
     public void onUserOffline(String uid, int reason) {
@@ -463,24 +672,126 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     }
 
     @Override
+    public void onChangeClientRoleSuccess(int clientRole) {
+
+    }
+
+    @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button_join:
-                //加入轰趴
-                createMyself();
-                changeUserdentity(InteractConstant.USER_IDENTITY_ANCHOR);
-                doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_BROADCASTER);
-                joinBtn.setVisibility(View.GONE);
-                leaveBtn.setVisibility(View.VISIBLE);
+                joinParty();
                 break;
             case R.id.button_leave:
-                stopPreview();
-                changeUserdentity(InteractConstant.USER_IDENTITY_AUDIENCE);
-                doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_AUDIENCE);
-                joinBtn.setVisibility(View.VISIBLE);
-                leaveBtn.setVisibility(View.GONE);
+                leaveParty();
+                break;
+            case R.id.interact_close_room:
+                onBackPressed();
                 break;
         }
 
+    }
+
+    private void leaveParty() {
+        changeUserdentity(InteractConstant.USER_IDENTITY_AUDIENCE);
+        doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_AUDIENCE);
+        stopPreview();
+        joinBtn.setVisibility(View.VISIBLE);
+        leaveBtn.setVisibility(View.GONE);
+        myCommonButton.setViewVisible(R.id.btn_mute_audio, View.GONE);
+        if (talkType != InteractConstant.TALK_TYPE_AUDIO) {
+            myCommonButton.setViewVisible(R.id.btn_switch_camera, View.GONE);
+            myCommonButton.setViewVisible(R.id.btn_enable_video, View.GONE);
+        }
+    }
+
+    private void joinParty() {
+        //加入轰趴
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                doConfigEngine(QHVCInteractiveConstant.CLIENT_ROLE_BROADCASTER);
+                currPlayMode = MODE_PLAYER;
+                createMyself();
+                startPreview();
+                changeUserdentity(USER_IDENTITY_ANCHOR);
+            }
+        });
+        joinBtn.setVisibility(View.GONE);
+        leaveBtn.setVisibility(View.VISIBLE);
+        myCommonButton.setViewVisible(R.id.btn_mute_audio, View.VISIBLE);
+        if (talkType != InteractConstant.TALK_TYPE_AUDIO) {
+            myCommonButton.setViewVisible(R.id.btn_switch_camera, View.VISIBLE);
+            myCommonButton.setViewVisible(R.id.btn_enable_video, View.VISIBLE);
+        }
+    }
+
+    // 切换摄像头
+    private void doSwitchCamera() {
+        if (mInteractEngine != null) {
+            mInteractEngine.switchCamera();
+        }
+    }
+
+    // 本地关闭麦克风
+    private void doMuteLocalAudio(View v) {
+        Object tag = v.getTag();
+        if (tag == null) {
+            tag = false;
+        }
+        if (mWorker != null) {
+            mWorker.getInteractEngine().muteLocalAudioStream(!(boolean) tag);
+            ImageView button = (ImageView) v;
+            button.setTag(!(boolean) tag);
+            if (!(boolean) tag) {
+                //                button.setColorFilter(getResources().getColor(R.color.blue), PorterDuff.Mode.MULTIPLY);
+                button.setImageResource(R.drawable.recorder_mute_unable);
+            } else {
+                //                button.clearColorFilter();
+                button.setImageResource(R.drawable.interact_mute);
+            }
+        }
+    }
+
+    // 是否发送本地视频
+    private void doSwitchToSendLocalVideo(ImageView btn) {
+        if (mInteractEngine != null) {
+            if (btn.getTag() != null && (boolean) btn.getTag()) {
+                btn.setTag(false);
+                mInteractEngine.muteLocalVideoStream(false);
+                btn.setImageResource(R.drawable.interact_enable_video);
+                Logger.d(InteractConstant.TAG, InteractConstant.TAG + " : 恢复发送本地视频流!");
+            } else {
+                btn.setTag(true);
+                btn.setImageResource(R.drawable.interact_close_video);
+                mInteractEngine.muteLocalVideoStream(true);
+                Logger.d(InteractConstant.TAG, InteractConstant.TAG + " : 暂停发送本地视频流!");
+            }
+        } else {
+            showToast("还未开始直播，请稍后再试");
+        }
+    }
+
+    //切换音频输出
+    private void doSwitchAudioOutput(ImageView btn) {
+        if (mInteractEngine != null) {
+            if (mInteractEngine.isSpeakerphoneEnabled()) {
+                mInteractEngine.setEnableSpeakerphone(false);
+                btn.setImageResource(R.drawable.interact_earphone);
+                //                btn.clearColorFilter();
+            } else {
+                btn.setImageResource(R.drawable.speaker);
+                mInteractEngine.setEnableSpeakerphone(true);
+                //                btn.setColorFilter(getResources().getColor(R.color.blue), PorterDuff.Mode.MULTIPLY);
+            }
+        } else {
+            showToast("还未开始直播，请稍后再试");
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        onDestroy();
     }
 }

@@ -635,7 +635,10 @@ public class AndroidUtil {
 
     private static final SimpleDateFormat DATE_FORMAT_hhmmss = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT_mmss = new SimpleDateFormat("mm:ss");
-
+    private static final SimpleDateFormat DATE_FORMAT_FILENAME_TS = new SimpleDateFormat("MM_dd_HH_mm_ss_SSS");
+    public static String getNewFileName(long timeInMillis) {
+        return DATE_FORMAT_FILENAME_TS.format(new Date(timeInMillis));
+    }
     public static String getTimeString(long timeInMillis) {
         if (timeInMillis >= 3600000) {
             return DATE_FORMAT_hhmmss.format(new Date(timeInMillis));

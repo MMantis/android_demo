@@ -54,6 +54,8 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
     private static String APPKEY = "";
     private static String SECRETKEY = "";
 
+    private String channelId = "";
+
     private RelativeLayout businessIdLayout;
     private RelativeLayout channelIdLayout;
     private RelativeLayout appKeyLayout;

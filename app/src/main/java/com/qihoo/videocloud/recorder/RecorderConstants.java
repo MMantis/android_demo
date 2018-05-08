@@ -18,7 +18,7 @@ public class RecorderConstants {
     public static final String VIDEO_FPS = "video_fps";/*视频帧率*/
     public static final String CODE_RATE = "code_rate";/*码率*/
     public static final String RECORDE_LOCAL_CODE_RATE = "recorde_local_code_rate";/*本地录制码率*/
-    public static final String AUTO_ADJUST_CODE_RATE = "auto_adjust_code_rate";/*码率自适应*/
+    public static final String AUTO_ADJUST_CODE_RATE = "auto_adjust_code_rat";/*码率自适应*/
     public static final String AUDIO_CODE_RATE = "audio_code_rate";/*音频码率*/
     public static final String AUDIO_SAMPLE = "audio_sample";/*音频采样率*/
 

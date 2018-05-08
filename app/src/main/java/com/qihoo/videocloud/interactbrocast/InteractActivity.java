@@ -79,13 +79,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     private int mCurrOrientation = Constants.EMode.EMODE_PORTRAIT; //当前方向--横屏或竖屏
 
     ///////////////For test 为了测试互动直播转推功能 ///////////////////
-    private static final String pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240538_OX";
-    private static final String pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240538_OX.flv";
+    private String pushAddr;
+    private String pullAddr;
     ///////////////////////////////////////////////////////////////
 
     ///////////////// For test为了测试合流 //////////////////////////
     public static boolean OPEN_MERGE_STREAM = true;
-    public static final String mergeRtmp = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/_LC_ps1_A01_8976003515217748781240533_OX";
+    public static String mergeRtmp;
     ///////////////////////////////////////////////////////////////
 
     private String myUid;
@@ -184,8 +184,8 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
         Map<String, String> optionInfo = new HashMap<>();
 
-        optionInfo.put("push_addr", pushAddr);
-        optionInfo.put("pull_addr", pullAddr);
+        optionInfo.put(QHVCInteractiveConstant.EngineOption.PUSH_ADDR, pushAddr);
+        optionInfo.put(QHVCInteractiveConstant.EngineOption.PULL_ADDR, pullAddr);
         mWorker.loadEngine(roomId, myUid, optionInfo);
     }
 
@@ -203,6 +203,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 mInteractEngine.setLowStreamVideoProfile(320, 180, 15, 180);
             }
             */
+        }
+        if (OPEN_MERGE_STREAM) {
+            setMixStreamInfo();
         }
         joinChannel();
     }
@@ -225,7 +228,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         InteractServerApi.getRoomUserList(myUid, roomId, new int[] {
                 InteractConstant.USER_IDENTITY_GUEST,
                 InteractConstant.USER_IDENTITY_AUDIENCE
-        },
+                },
                 new InteractServerApi.ResultCallback<List<InteractUserModel>>() {
                     @Override
                     public void onSuccess(List<InteractUserModel> data) {
@@ -236,6 +239,15 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
                     }
                 });
+
+        String streamId = InteractGlobalManager.getInstance().getBusinessId() + "_" +
+                    InteractGlobalManager.getInstance().getChannelId() + "_" +
+                    roomId + "_" +
+                    myUid + "_" + System.currentTimeMillis();
+        pushAddr = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/" + streamId;
+        pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/" + streamId + ".flv";
+
+        mergeRtmp = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/" + streamId + "_1";
     }
 
     private void initView() {
@@ -641,9 +653,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             mixStreamConfig.setIframeInterval(2);
             mixStreamConfig.setVideoBitrate(800); //800kbps
 
-            mInteractEngine.setMixStreamInfo(mixStreamConfig, QHVCInteractiveConstant.StreamLifeCycle.BIND_USER); //默认绑定房间
-            QHVCInteractiveMixStreamRegion mixStreamRegion = new QHVCInteractiveMixStreamRegion();
+            mInteractEngine.setMixStreamInfo(mixStreamConfig, QHVCInteractiveConstant.StreamLifeCycle.BIND_ROOM); //默认绑定房间
 
+            QHVCInteractiveMixStreamRegion mixStreamRegion = new QHVCInteractiveMixStreamRegion();
             mixStreamRegion.setX(0);
             mixStreamRegion.setY(0);
             mixStreamRegion.setWidth(360);
@@ -1027,9 +1039,6 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         startPreview();
         startClick();
         mWorker.getInteractEngine().setEnableSpeakerphone(true); // 设置使用外放播放声音
-        if (OPEN_MERGE_STREAM) {
-            setMixStreamInfo();
-        }
     }
 
     @Override
@@ -1098,6 +1107,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     @Override
     public void onLocalVideoStats(final QHVCInteractiveEventHandler.LocalVideoStats stats) {
 
+    }
+
+    @Override
+    public void onChangeClientRoleSuccess(int clientRole) {
+        //do nothing
     }
 
     @Override

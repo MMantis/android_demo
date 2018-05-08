@@ -91,4 +91,13 @@ public interface InteractCallBackEvent {
     public void onRemoteVideoStats(QHVCInteractiveEventHandler.RemoteVideoStats stats);
 
     public void onLocalVideoStats(QHVCInteractiveEventHandler.LocalVideoStats stats);
+
+    /**
+     * 角色身份切换成功回调。
+     * 当调用setClientRole()方法切换角色身份时，切换成功后回调此方法。如果切换身份失败，会回调onError()。
+     * 注：只有加入频道成功之后切换身份才会有此回调。
+     *
+     * @param clientRole 改变后的角色类型
+     */
+    public void onChangeClientRoleSuccess(int clientRole);
 }

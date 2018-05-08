@@ -19,7 +19,7 @@ public class InteractConstant {
     public static final String DEVELOP_EVN = "develop_evn";/*开发环境*/
     public static final int DEVELOP_EVN_TEST = 0;/*测试环境*/
     public static final int DEVELOP_EVN_ONLINE = 1;/*线上环境*/
-    public static final String ENCODE_TYPE = "encode_type";/*编码类型*/
+    public static final String ENCODE_TYPE = "interact_encode_type";/*编码类型*/
     public static final int ENCODE_TYPE_SOFT = 0;/*软解*/
     public static final int ENCODE_TYPE_HARD = 1;/*硬解*/
     public static final String BROCAST_SETTING_PROFILE_TYPE = "brocast_setting_profile_type";/*主播配置参数*/

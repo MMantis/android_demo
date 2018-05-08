@@ -135,4 +135,13 @@ public class InteractCallback extends QHVCInteractiveEventHandler {
             event.onLocalVideoStats(stats);
         }
     }
+
+    @Override
+    public void onChangeClientRoleSuccess(int clientRole) {
+        for (int i = 0; i < allCallBack.size(); i++) {
+            InteractCallBackEvent event = allCallBack.get(i);
+            event.onChangeClientRoleSuccess(clientRole);
+        }
+    }
+
 }

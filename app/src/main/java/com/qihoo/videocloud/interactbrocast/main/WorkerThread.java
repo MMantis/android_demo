@@ -137,7 +137,7 @@ public class WorkerThread extends Thread implements VideoSourceListener {
 
     private void setVideoCapture() {
         if (mUserVideoCapture && mInteractEngine != null) {
-            mVideoSource = mInteractEngine.getCurrVideoSource();
+            mVideoSource = mInteractEngine.getVideoSourceEvent();
             if (mVideoSource != null) {
                 mVideoSource.attach();
                 if (InteractConstant.CURR_VIDEO_CAPTURE == InteractConstant.VideoCapture.RECORD_GPU) {
@@ -180,6 +180,11 @@ public class WorkerThread extends Thread implements VideoSourceListener {
         String uSign = MD5.encryptMD5("sname__" + cid + "room_id__" + roomId + "uid__" + userId + sk);
         InteractGlobalManager.getInstance().setUSign(uSign);
         QHVCInteractiveKit.getInstance().setPublicServiceInfo(cid, ak, uSign);
+
+        //开启业务做视频数据采集
+        if (mUserVideoCapture) {
+            mInteractEngine.openCollectingData();
+        }
 
         int result = mInteractEngine.loadEngine(roomId, userId, caluSessionForTest(), optionInfo, InteractCallback.getInstance());
         if (result < 0) {
