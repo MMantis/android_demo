@@ -6,7 +6,6 @@ import android.content.res.Configuration;
 import android.graphics.PorterDuff;
 import android.graphics.SurfaceTexture;
 import android.graphics.drawable.BitmapDrawable;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.widget.DividerItemDecoration;
@@ -35,6 +34,12 @@ import com.qihoo.livecloud.interact.api.QHVCInteractiveKit;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveMixStreamConfig;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveMixStreamRegion;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveUtils;
+import com.qihoo.livecloud.livekit.api.QHVCConstants;
+import com.qihoo.livecloud.livekit.api.QHVCFaceUCallBack;
+import com.qihoo.livecloud.livekit.api.QHVCLiveKit;
+import com.qihoo.livecloud.livekit.api.QHVCLiveKitAdvanced;
+import com.qihoo.livecloud.livekit.api.QHVCMediaSettings;
+import com.qihoo.livecloud.livekit.api.QHVCSurfaceView;
 import com.qihoo.livecloud.tools.Constants;
 import com.qihoo.livecloud.tools.Logger;
 import com.qihoo.livecloud.tools.NetUtil;
@@ -42,7 +47,6 @@ import com.qihoo.livecloudrefactor.R;
 import com.qihoo.videocloud.interactbrocast.adapter.InteractRoomAudioNumberRecyclerViewAdapter;
 import com.qihoo.videocloud.interactbrocast.adapter.InteractRoomNumberRecyclerViewAdapter;
 import com.qihoo.videocloud.interactbrocast.data.InteractGlobalManager;
-import com.qihoo.videocloud.interactbrocast.livingcammera.InteractRecorderController;
 import com.qihoo.videocloud.interactbrocast.main.InteractCallBackEvent;
 import com.qihoo.videocloud.interactbrocast.main.InteractCallback;
 import com.qihoo.videocloud.interactbrocast.main.InteractConstant;
@@ -50,9 +54,9 @@ import com.qihoo.videocloud.interactbrocast.main.WorkerThread;
 import com.qihoo.videocloud.interactbrocast.modle.InteractRoomModel;
 import com.qihoo.videocloud.interactbrocast.modle.InteractUserModel;
 import com.qihoo.videocloud.interactbrocast.net.InteractServerApi;
-import com.qihoo.videocloud.interactbrocast.ui.InteractRemoteVideoRenderer;
 import com.qihoo.videocloud.interactbrocast.ui.MyCommonButton;
 import com.qihoo.videocloud.interactbrocast.ui.MyVideoView;
+import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.LibTaskController;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
 import com.qihoo.videocloud.view.BaseDialog;
@@ -72,7 +76,7 @@ import java.util.concurrent.TimeUnit;
 public class InteractActivity extends BaseActivity implements InteractCallBackEvent, View.OnClickListener {
 
     private RelativeLayout mVideoLayer;
-    private InteractRecorderController mRecorderController;
+    //private InteractRecorderController mRecorderController;
 
     private MyCommonButton myCommonButton;
 
@@ -92,11 +96,14 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     private WorkerThread mWorker;
     private QHVCInteractiveKit mInteractEngine;
     private int mCurrRole; //指定是主播还是观众（或嘉宾）
-    //private int mStreamMode = QHVCInteractConstant.STREAM_MODE_SEPARATE;  //记录选择的是合流还是分流模式
-    private int mUserVideoCapture = InteractConstant.VIDEO_SDK_COMMON_CAPTURE; //是否是业务自采集视频
-    private boolean canSendLocalVideo;
 
-    private boolean mUseExternalRender = false; //标示是否是业务自己渲染视频（远端以及本地视频）
+    private int mUserVideoCapture = InteractConstant.VIDEO_USER_CAPTURE; //是否是业务自采集视频
+
+    //模拟业务做视频采集（支持美颜、faceU等）
+    private QHVCSurfaceView mSurfaceView;
+    private QHVCLiveKitAdvanced mQhvcLiveKitAdvanced;
+    private int videoEncodeWidth;
+    private int videoEncodeHeight;
 
     //FaceU
     private boolean mOpenFaceU = false;
@@ -248,6 +255,39 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         pullAddr = "http://pl1.live.huajiao.com/live_huajiao_v2/" + streamId + ".flv";
 
         mergeRtmp = "rtmp://ps1.live.huajiao.com/live_huajiao_v2/" + streamId + "_1";
+
+        Logger.d(InteractConstant.TAG, InteractConstant.TAG + ", push_rtmp: " + pushAddr + ", \n flv: " + pullAddr + ", \n merge: " + mergeRtmp);
+
+        //5.0以上并且支持硬编码的机型使用业务做视频采集（支持美颜等）
+        if (QHVCLiveKit.getInstance(this).isSupportHardwareCoding()) {
+            mUserVideoCapture = InteractConstant.VIDEO_USER_CAPTURE;
+            initUserCapture();
+        } else {
+            mUserVideoCapture = InteractConstant.VIDEO_SDK_COMMON_CAPTURE;
+        }
+    }
+
+    private void initUserCapture() {
+        mQhvcLiveKitAdvanced = QHVCLiveKitAdvanced.getInstance(this.getApplicationContext());
+        String cid = InteractGlobalManager.getInstance().getChannelId();
+        mQhvcLiveKitAdvanced.setChannelId(cid);/*设置渠道Id*/
+        if (mQhvcLiveKitAdvanced.isSupportHardwareCoding()) { /*支持硬编*/
+            mQhvcLiveKitAdvanced.setEncodeMethod(QHVCConstants.RecorderConstants.ENCODE_HARDWARE);/*设置编码方式（硬编或者软编）*/
+            QHVCMediaSettings.Builder mQHVCMediaSettingsBuilder = new QHVCMediaSettings.Builder();
+            mQhvcLiveKitAdvanced.setMediaSettings(mQHVCMediaSettingsBuilder.build());
+
+            mQhvcLiveKitAdvanced.setHardEncodeSize(QHVCConstants.HardEncoderSize.ENCODER_360X640); //TODO 一会看 编码的宽高
+
+            mQhvcLiveKitAdvanced.setEnableAudio(false); //此处借用推流采集模块，必须禁掉音频，因为互动直播本身已做音频采集。
+
+            mQhvcLiveKitAdvanced.setCameraFacing(QHVCConstants.Camera.FACING_FRONT);/*设置使用前置或者后置摄像头*/
+            if (mCurrOrientation == Constants.EMode.EMODE_LANDSCAPE) {
+                mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE, this);/*设置预览方向*/
+            } else {
+                mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT, this);/*设置预览方向*/
+            }
+        }
+
     }
 
     private void initView() {
@@ -279,6 +319,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         MyVideoView bigVideoView = (MyVideoView) findViewById(R.id.big_video);
 
         if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
+            /*
             mRecorderController = new InteractRecorderController(this);
             mRecorderController.setScreenWH(mScreenWidth, mScreenHeight);
             mRecorderController.setOrientation(mCurrOrientation);
@@ -294,13 +335,24 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 bigVideoView.setBgView(myTexture, mScreenWidth, mScreenHeight);
                 mRecorderController.initGLSurfaceView(myTexture);
             }
+            */
+
+            if (mSurfaceView == null) {
+                mSurfaceView = new QHVCSurfaceView(InteractActivity.this);
+            }
+            mQhvcLiveKitAdvanced.setDisplayPreview(mSurfaceView);
+            bigVideoView.setBgView(mSurfaceView, mScreenWidth, mScreenHeight);
+
+            mQhvcLiveKitAdvanced.prepare();
+            mQhvcLiveKitAdvanced.startPreview();/*开始预览*/
+
         }
         mLargeVideoView = bigVideoView;
         mLargeVideoView.setUid(myUid);
         mLargeVideoView.setAllButtonVisible(View.GONE);
         mAllVideoMap.put(myUid, mLargeVideoView);
 
-        View v = findViewById(R.id.common_btn);
+        final View v = findViewById(R.id.common_btn);
         myCommonButton = new MyCommonButton(v) {
             @Override
             public void doOnClickSwitchCamera() {
@@ -319,12 +371,12 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
             @Override
             public void doOnClickBeauty(ImageView view) {
-
+                doBeauty(view);
             }
 
             @Override
             public void doOnClickFaceU(ImageView view) {
-
+                doFaceU(view);
             }
 
             @Override
@@ -363,9 +415,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         }
 
         //todo 暂时注掉美颜faceU功能按钮
-        myCommonButton.setViewVisible(R.id.btn_beauty, View.GONE);
-        myCommonButton.setViewVisible(R.id.btn_faceu, View.GONE);
-        myCommonButton.setViewVisible(R.id.btn_filter, View.GONE);
+//        myCommonButton.setViewVisible(R.id.btn_beauty, View.GONE);
+//        myCommonButton.setViewVisible(R.id.btn_faceu, View.GONE);
+//        myCommonButton.setViewVisible(R.id.btn_filter, View.GONE);
 
         if (talkType == InteractConstant.TALK_TYPE_AUDIO) {
             showAudioNumberPopWindow(rootLayout);
@@ -432,6 +484,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             public void run() {
                 Logger.d(InteractConstant.TAG, InteractConstant.TAG + " : 调度成功，开始 直播！");
                 if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
+                    /*
                     if (mRecorderController != null) {
                         mRecorderController.startCameraRecorder();
                     } else {
@@ -439,6 +492,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                                 InteractConstant.TAG + " : 调度成功，但mRecorderController is NULL!开播失败！");
                         showToast("调度成功，但mRecord;erController is NULL!开播失败！");
                     }
+                     */
+
+                    SurfaceTexture surfaceTexture = mWorker.getSurfaceTexture(videoEncodeWidth, videoEncodeHeight);
+                    if (surfaceTexture != null) {
+                        mQhvcLiveKitAdvanced.setSharedSurfaceTexture(surfaceTexture);
+                    }
+                    mQhvcLiveKitAdvanced.startEncode();
                 } else {
                     View view = null;
                     if (talkType == InteractConstant.TALK_TYPE_AUDIO) {/*纯音频*/
@@ -462,8 +522,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
                         mWorker.preview(true, mLargeVideoView.getBgView(), myUid);
                     } else {
-                        Logger.e(InteractConstant.TAG,
-                                InteractConstant.TAG + ", startPreview failed!! view is null......");
+                        Logger.e(InteractConstant.TAG, InteractConstant.TAG + ", startPreview failed!! view is null......");
                     }
                 }
             }
@@ -473,11 +532,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     @Override
     protected void onResume() {
         super.onResume();
+        /* //Todo
         if (mRecorderController != null) {
             if (checkCameraPermission()) {
                 mRecorderController.resumeCamera();
             }
         }
+        */
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onResume() in InteractActivity...");
     }
 
@@ -485,9 +546,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     protected void onPause() {
         super.onPause();
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onPause() in InteractActivity...");
+        /* //TODO
         if (mRecorderController != null) {
             mRecorderController.releaseCamera();
         }
+         */
     }
 
     private void dismissRoom() {
@@ -527,7 +590,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        onDestroy();
+        finish();
     }
 
     @Override
@@ -537,9 +600,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         leaveIMRoom();
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onDestroy() in InteractActivity...");
 
+        /*
         if (mRecorderController != null) {
             mRecorderController.destroy();
         }
+        */
         if (mWorker != null) {
             mWorker.leaveChannel(roomName);
         }
@@ -555,6 +620,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
             }
         });
+        //释放业务美颜采集相关资源
+        if (mQhvcLiveKitAdvanced != null) {
+            mQhvcLiveKitAdvanced.release();/*释放资源*/
+        }
+
         LibTaskController.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -576,9 +646,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
         mInteractEngine = mWorker.getInteractEngine();
 
-        if (mRecorderController != null) {
-            mRecorderController.setVideoSourceListener(mWorker);
-        }
+//        if (mRecorderController != null) {
+//            mRecorderController.setVideoSourceListener(mWorker);
+//        }
     }
 
     private void doConfigEngine(int cRole) {
@@ -596,7 +666,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     }
 
     private void setVideoWidthAndHeight(int profile) {
-        if (mRecorderController != null) {
+///        if (mRecorderController != null) {
             int w = 360;
             int h = 640;
             switch (profile) {
@@ -642,9 +712,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 w = h;
                 h = tempW;
             }
+        videoEncodeWidth = w;
+        videoEncodeHeight = h;
+//            mRecorderController.setVideoSize(w, h);
+//        }
 
-            mRecorderController.setVideoSize(w, h);
-        }
     }
 
     public void setMixStreamInfo() {
@@ -692,9 +764,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     // 切换摄像头
     private void doSwitchCamera() {
         if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
+            /*
             if (mRecorderController != null) {
                 mRecorderController.switchCamera();
             }
+            */
         } else {
             if (mInteractEngine != null) {
                 mInteractEngine.switchCamera();
@@ -737,6 +811,34 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         } else {
             showToast("还未开始直播，请稍后再试");
         }
+    }
+
+    //TODO 还需要做美颜的调节UI
+    private void doBeauty(ImageView view) {
+        if (mQhvcLiveKitAdvanced != null) {
+            mQhvcLiveKitAdvanced.openBeauty();/*开启美颜功能*/
+            mQhvcLiveKitAdvanced.setBeautyRatio(0.9f);
+        }
+    }
+
+    //TODO 还需要做FaceU的选择界面
+    boolean showFaceud = false;
+    private void doFaceU(ImageView view) {
+        if (showFaceud) {
+            String faceuPathTest = AndroidUtil.getAppDir() + "eff/30004_1";
+            if (mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.showFaceU(faceuPathTest, -1, new QHVCFaceUCallBack() {
+                    @Override
+                    public void onFaceUBack(String sourcePath, String faceUInfo) {
+                        Logger.i(InteractConstant.TAG, "sourcePath: " + sourcePath + ", faceuInfo: " + faceUInfo);
+                    }
+                });
+
+            }
+        } else {
+            mQhvcLiveKitAdvanced.stopFaceU();
+        }
+        showFaceud = !showFaceud;
     }
 
     private void doEnableLoaclVideo(ImageView btn) {
@@ -784,6 +886,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     }
 
     private void doSwitchFaceU(Button button) {
+        /*
         if (mRecorderController != null) {
             mOpenFaceU = !mOpenFaceU;
             if (mOpenFaceU) {
@@ -793,6 +896,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             }
             mRecorderController.setFaceU(mOpenFaceU);
         }
+        */
     }
 
     public void doRenderRemoteUi(final String uid) {
@@ -821,6 +925,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 }
                 if (myUid.equals(uid) == false) {
                     if (InteractConstant.USE_SET_SURFACE) {
+                        // 模拟业务渲染播放远端视频（setSurfece方式），使用SDK播放的业务请忽略。
                         TextureView textureView = new TextureView(InteractActivity.this);
                         textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
                             @Override
@@ -847,21 +952,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                             }
                         });
                         view = textureView;
+                        //////////////////////////////
                     } else {
-                        if (mUseExternalRender) {
-                            //目前仅即构支持了外部渲染 TODO
-                            InteractRemoteVideoRenderer remoteVideoRenderer = new InteractRemoteVideoRenderer();
-                            remoteVideoRenderer.init();
-                            if (view instanceof TextureView)
-                                remoteVideoRenderer.setRendererView((TextureView) view);
-                            else
-                                remoteVideoRenderer.setRendererView((SurfaceView) view);
-                            mInteractEngine.setRemoteVideoExternalRender(uid, "", remoteVideoRenderer);
-                        } else {
-                            mInteractEngine.setupRemoteVideo(view, QHVCInteractiveConstant.RenderMode.RENDER_MODE_HIDDEN,
-                                    uid, "");
-                        }
-
+                        mInteractEngine.setupRemoteVideo(view, QHVCInteractiveConstant.RenderMode.RENDER_MODE_HIDDEN, uid, "");
                     }
                 }
                 addRemoteVideo(view, uid);
@@ -942,6 +1035,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     }
 
     private void changeToFullView(MyVideoView videoView) {
+        /*
         if (mLargeVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
             if (mRecorderController != null) {
                 mRecorderController.releaseCamera();
@@ -979,6 +1073,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 }, 300);
             }
         }
+        */
     }
 
     private void removeRemoteVideo(String uid, int reason) {
@@ -1039,6 +1134,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         startPreview();
         startClick();
         mWorker.getInteractEngine().setEnableSpeakerphone(true); // 设置使用外放播放声音
+    }
+
+    @Override
+    public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume) {
+
     }
 
     @Override

@@ -316,7 +316,6 @@ public class WorkerThread extends Thread implements VideoSourceListener {
             mVideoSource = null;
         }
         if (mInteractEngine != null) {
-            mInteractEngine.releaseEngine();
             mInteractEngine.destroy();
             mInteractEngine = null;
         }

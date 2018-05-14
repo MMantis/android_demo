@@ -32,8 +32,7 @@ public class InteractConstant {
      *  标示视频由谁来提供（采集）
      */
     public static final int VIDEO_SDK_COMMON_CAPTURE = 1; //SDK采集（普通）
-    //    public static final int VIDEO_SDK_BEAUTY_CAPTURE = 2; //SDK采集（美颜）
-    public static final int VIDEO_USER_CAPTURE = 3; //业务采集视频
+    public static final int VIDEO_USER_CAPTURE = 3; //业务采集视频（可支持美颜等）
 
     //标识视频采集方式
     public enum VideoCapture {
@@ -70,11 +69,6 @@ public class InteractConstant {
             QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P, // 1280x720  15   1130
             QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P_3 // 1280x720  30   1710
     };
-
-    //mock业务接口
-    public static final String PROTOCOL_JOIN_ROOM = "http://125.88.192.168:443/update"; //加入以及更新房间(以及查看房间信息)
-    public static final String PROTOCOL_LEAVE_ROOM = "http://125.88.192.168:443/leave"; //离开房间
-    public static final String PROTOCOL_ROOM_LIST = "http://125.88.192.168:443/roomlist"; //获取房间列表
 
     /**
      * 房间类型-主播&主播
@@ -124,10 +118,7 @@ public class InteractConstant {
      */
     public static final int USER_IDENTITY_AUDIENCE = 0;
 
-    /**
-     * 错误类型-未知错误
-     */
-    public static final int ERROR_UNKOWN = -1;
+
     /**
      * 错误类型-服务端返回值解析异常
      */

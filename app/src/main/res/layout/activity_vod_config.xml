@@ -80,7 +80,7 @@
             <EditText
                 android:id="@+id/et_channel_id"
                 style="@style/edittext_config_input"
-                android:text="@string/config_cid" />
+                android:text="@string/config_player_vod_cid" />
         </RelativeLayout>
 
         <View
@@ -114,7 +114,7 @@
             <EditText
                 android:id="@+id/et_url"
                 style="@style/edittext_config_input"
-                android:text="@string/config_vod_url" />
+                android:text="@string/config_player_vod_url" />
         </RelativeLayout>
 
         <View

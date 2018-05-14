@@ -318,7 +318,7 @@ public class LocalServerPlayerActivity extends BaseLocalServerActivity {
                     mResids,
                     mPlayerUrls,
                     0,
-                    getResources().getString(R.string.config_cid),
+                    getResources().getString(R.string.config_player_vod_cid),
                     "",
                     options);
 

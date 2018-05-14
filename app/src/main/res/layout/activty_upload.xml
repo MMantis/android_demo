@@ -60,7 +60,8 @@
 
         <EditText
             android:id="@+id/upload_ak"
-            style="@style/record_prepare_edittext" />
+            style="@style/record_prepare_edittext"
+            android:text="@string/config_upload_ak" />
     </RelativeLayout>
 
     <View
@@ -94,7 +95,8 @@
 
         <EditText
             android:id="@+id/upload_sk"
-            style="@style/record_prepare_edittext" />
+            style="@style/record_prepare_edittext"
+            android:text="@string/config_upload_sk" />
     </RelativeLayout>
 
     <View
@@ -164,7 +166,7 @@
         <EditText
             android:id="@+id/upload_channel_id"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_cid" />
+            android:text="@string/config_upload_cid" />
     </RelativeLayout>
 
     <View
@@ -237,7 +239,7 @@
             android:layout_width="130dp"
             android:layout_alignParentRight="false"
             android:layout_toLeftOf="@+id/upload_file_browse"
-            android:text="/sdcard/mylog.txt" />
+            android:text="@string/config_upload_file" />
 
         <Button
             android:id="@+id/upload_file_browse"
@@ -288,9 +290,9 @@
             android:layout_width="130dp"
             android:layout_alignParentRight="false"
             android:layout_toLeftOf="@+id/upload_speed_unit"
-            android:text="100"
+            android:inputType="number"
             android:maxLines="1"
-            android:inputType="number" />
+            android:text="100" />
 
         <TextView
             android:id="@+id/upload_speed_unit"

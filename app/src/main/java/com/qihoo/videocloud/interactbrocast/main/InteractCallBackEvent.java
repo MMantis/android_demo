@@ -28,6 +28,8 @@ public interface InteractCallBackEvent {
      */
     public void onJoinChannelSuccess(String channel, String uid, int elapsed);
 
+    public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume);
+
     /**
      * 其他用户离开当前频道回调
      * 提示有用户离开了频道（或掉线）。

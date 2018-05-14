@@ -161,7 +161,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        onDestroy();
+        finish();
     }
 
     @Override
@@ -864,6 +864,11 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                         showToast("观众加入房间失败！errCode：" + errCode + "---errMsg:" + errMsg);
                     }
                 });
+    }
+
+    @Override
+    public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume) {
+
     }
 
     @Override

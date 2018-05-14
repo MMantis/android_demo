@@ -381,7 +381,7 @@ public class VodSwitchResolutionActivity extends Activity {
                     },
                     SN_SOURCE,
                     0,
-                    getResources().getString(R.string.config_cid),
+                    getResources().getString(R.string.config_player_vod_cid),
                     "",
                     new HashMap<String, Object>(1));
         } catch (Exception e) {

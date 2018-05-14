@@ -3,15 +3,15 @@
     xmlns:tool="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/white"
+    android:orientation="vertical"
     tool:context="com.qihoo.videocloud.recorder.PrepareRecordActivity">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/record_prepare_navbar_height"
-        android:orientation="horizontal"
-        android:background="@drawable/header_bg">
+        android:background="@drawable/header_bg"
+        android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/record_prepare_header_left_icon"
@@ -19,25 +19,25 @@
             android:layout_height="match_parent"
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
-            android:scaleType="center"
-            android:src="@drawable/nav_back_selector"
             android:paddingLeft="15dp"
-            android:paddingRight="15dp" />
+            android:paddingRight="15dp"
+            android:scaleType="center"
+            android:src="@drawable/nav_back_selector" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="18sp"
             android:layout_centerInParent="true"
-            android:text="推流" />
+            android:text="推流"
+            android:textColor="@color/white"
+            android:textSize="18sp" />
 
         <ImageView
             android:id="@+id/record_prepare_set"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_centerVertical="true"
             android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
             android:paddingLeft="15dp"
             android:paddingRight="15dp"
             android:src="@drawable/setting" />
@@ -70,6 +70,9 @@
         <EditText
             android:id="@+id/record_prepare_busuness_id"
             style="@style/record_prepare_edittext"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
             android:text="@string/config_bid" />
     </RelativeLayout>
 
@@ -105,7 +108,7 @@
         <EditText
             android:id="@+id/record_prepare_channel_id"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_live_cid" />
+            android:text="@string/config_push_cid" />
     </RelativeLayout>
 
     <View
@@ -140,7 +143,7 @@
         <EditText
             android:id="@+id/record_prepare_url"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_live_sn" />
+            android:text="@string/config_push_sn" />
     </RelativeLayout>
 
     <View
@@ -192,11 +195,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
             android:layout_marginLeft="15dp"
             android:text="是否横屏"
             android:textColor="#333333"
-            android:textSize="14sp"
-            android:layout_gravity="center_vertical" />
+            android:textSize="14sp" />
 
         <Switch
             android:id="@+id/record_prepare_choice_orientation"
@@ -224,11 +227,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
             android:layout_marginLeft="15dp"
             android:text="是否纯音频推流"
             android:textColor="@color/recordtextclore"
-            android:textSize="14sp"
-            android:layout_gravity="center_vertical" />
+            android:textSize="14sp" />
 
         <Switch
             android:id="@+id/record_prepare_choice_only_voice"
@@ -256,11 +259,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
             android:layout_marginLeft="15dp"
             android:text="是否保存视频至本地"
             android:textColor="#333333"
-            android:textSize="14sp"
-            android:layout_gravity="center_vertical" />
+            android:textSize="14sp" />
 
         <Switch
             android:id="@+id/record_prepare_choice_save_video_file"
@@ -289,8 +292,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
-            android:layout_marginBottom="20dp"
             android:layout_gravity="bottom"
+            android:layout_marginBottom="20dp"
             android:src="@drawable/play_big" />
     </RelativeLayout>
 </LinearLayout>

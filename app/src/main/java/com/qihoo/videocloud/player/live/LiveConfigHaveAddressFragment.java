@@ -54,7 +54,6 @@ public class LiveConfigHaveAddressFragment extends Fragment implements View.OnCl
                 intent.putExtra("haveAddress", Boolean.TRUE);
                 intent.putExtra("url", etUrl.getText().toString().trim());
                 intent.putExtra("autoDecoded", rbConfigDecodedAuto.isChecked());
-                intent.putExtra("channelId", getString(R.string.config_cid));
 
                 startActivity(intent);
             }

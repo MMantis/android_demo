@@ -60,7 +60,7 @@ public class P2PVideoListAdapter extends BaseAdapter {
         this.mContext = context;
         this.mImageLoader = imageLoader;
         this.mObjects = mObjects;
-        this.mCid = context.getResources().getString(R.string.config_cid);
+        this.mCid = context.getResources().getString(R.string.config_player_vod_cid);
     }
 
     public void setScrollState(boolean scrollState) {

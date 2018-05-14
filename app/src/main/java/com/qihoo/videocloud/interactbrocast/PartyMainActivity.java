@@ -571,6 +571,11 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
         startClick();
     }
 
+    @Override
+    public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume) {
+
+    }
+
     /*开始心态*/
     private void startClick() {
         timeHandler.postDelayed(timeClickRunnable, 1000);
@@ -792,6 +797,6 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        onDestroy();
+        finish();
     }
 }

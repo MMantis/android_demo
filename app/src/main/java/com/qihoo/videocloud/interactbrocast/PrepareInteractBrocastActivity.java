@@ -51,10 +51,6 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
     private ViewGroup loginLayout;
 
     private boolean mLogining = false;
-    private static String APPKEY = "";
-    private static String SECRETKEY = "";
-
-    private String channelId = "";
 
     private RelativeLayout businessIdLayout;
     private RelativeLayout channelIdLayout;
@@ -78,9 +74,7 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
         busunessIdEditText = (EditText) findViewById(R.id.interact_brocast_prepare_busuness_id);
         channelIdEditText = (EditText) findViewById(R.id.interact_brocast_prepare_channel_id);
         appKeyEditText = (EditText) findViewById(R.id.interact_brocast_prepare_key);
-        appKeyEditText.setText(APPKEY);
         secretKeyEditText = (EditText) findViewById(R.id.interact_brocast_prepare_secret_key);
-        secretKeyEditText.setText(SECRETKEY);
         userIdEditText = (EditText) findViewById(R.id.interact_brocast_prepare_uid);
 
         loginLayout = (ViewGroup) findViewById(R.id.interact_layout_login);
@@ -121,8 +115,8 @@ public class PrepareInteractBrocastActivity extends Activity implements View.OnC
         boolean isUsinRight = intent.getBooleanExtra(INTENT_EXTRA_SDK_USIN_RIGHT, true);
         if (!isUsinRight) {
             resetToLoginUI();
-            appKeyEditText.setText(APPKEY);
-            secretKeyEditText.setText(SECRETKEY);
+            appKeyEditText.setText(R.string.config_interact_ak);
+            secretKeyEditText.setText(R.string.config_interact_sk);
         }
     }
 

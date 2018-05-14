@@ -105,7 +105,7 @@
         <EditText
             android:id="@+id/record_prepare_channel_id"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_live_cid" />
+            android:text="@string/config_recorder_cid" />
     </RelativeLayout>
 
     <View

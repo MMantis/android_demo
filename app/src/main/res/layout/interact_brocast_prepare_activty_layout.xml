@@ -50,12 +50,12 @@
 
     <!--Bid-->
     <RelativeLayout
+        android:id="@+id/interact_business_id_layout"
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:orientation="horizontal"
         android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:id="@+id/interact_business_id_layout">
+        android:paddingRight="15dp">
 
         <ImageView
             android:id="@+id/s_iv_bid"
@@ -91,12 +91,12 @@
 
     <!--Cid-->
     <RelativeLayout
+        android:id="@+id/interact_channel_id_layout"
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:orientation="horizontal"
         android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:id="@+id/interact_channel_id_layout">
+        android:paddingRight="15dp">
 
         <ImageView
             android:id="@+id/s_iv_cid"
@@ -115,13 +115,10 @@
             android:textColor="#333333"
             android:textSize="14sp" />
 
-        <!--      <EditText
-                  android:id="@+id/interact_brocast_prepare_channel_id"
-                  style="@style/record_prepare_edittext"
-                  android:text="ilive_zs_xiaoyouxi" />-->
         <EditText
             android:id="@+id/interact_brocast_prepare_channel_id"
-            style="@style/record_prepare_edittext" />
+            style="@style/record_prepare_edittext"
+            android:text="@string/config_interact_cid" />
     </RelativeLayout>
 
     <View
@@ -131,12 +128,12 @@
 
     <!--AppSecret-->
     <RelativeLayout
+        android:id="@+id/interact_appkey_layout"
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:orientation="horizontal"
         android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:id="@+id/interact_appkey_layout">
+        android:paddingRight="15dp">
 
         <ImageView
             android:id="@+id/s_iv_sn"
@@ -158,16 +155,16 @@
         <EditText
             android:id="@+id/interact_brocast_prepare_key"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_live_sn" />
+            android:text="@string/config_interact_ak" />
     </RelativeLayout>
     <!--AppSecret-->
     <RelativeLayout
+        android:id="@+id/interact_screatkey_layout"
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:orientation="horizontal"
         android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:id="@+id/interact_screatkey_layout">
+        android:paddingRight="15dp">
 
         <ImageView
             android:id="@+id/s_iv_sn1"
@@ -189,7 +186,7 @@
         <EditText
             android:id="@+id/interact_brocast_prepare_secret_key"
             style="@style/record_prepare_edittext"
-            android:text="@string/config_live_sn" />
+            android:text="@string/config_interact_sk" />
     </RelativeLayout>
 
 
@@ -200,12 +197,12 @@
 
     <!--AppSecret-->
     <RelativeLayout
+        android:id="@+id/interact_userid_layout"
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:orientation="horizontal"
         android:paddingLeft="15dp"
-        android:paddingRight="15dp"
-        android:id="@+id/interact_userid_layout">
+        android:paddingRight="15dp">
 
         <ImageView
             android:id="@+id/s_iv_uid"
@@ -227,8 +224,7 @@
         <EditText
             android:id="@+id/interact_brocast_prepare_uid"
             style="@style/record_prepare_edittext"
-            android:enabled="false"
-            android:text="@string/config_live_sn" />
+            android:enabled="false" />
     </RelativeLayout>
 
     <View

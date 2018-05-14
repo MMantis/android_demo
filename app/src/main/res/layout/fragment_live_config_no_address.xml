@@ -83,7 +83,7 @@
                 <EditText
                     android:id="@+id/et_channel_id"
                     style="@style/edittext_config_input"
-                    android:text="@string/config_cid" />
+                    android:text="@string/config_player_live_cid" />
             </RelativeLayout>
 
             <View
@@ -119,7 +119,7 @@
                 <EditText
                     android:id="@+id/et_sn"
                     style="@style/edittext_config_input"
-                    android:text="@string/config_live_sn" />
+                    android:text="@string/config_player_live_sn" />
             </RelativeLayout>
 
             <View
