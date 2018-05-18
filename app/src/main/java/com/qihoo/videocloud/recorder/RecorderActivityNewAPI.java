@@ -62,6 +62,8 @@ import com.qihoo.videocloud.stats.tool.PublishStatsTool;
 import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
 import com.qihoo.videocloud.view.BaseDialog;
+import com.qihoo.videocloud.view.BeautyPopWindow;
+import com.qihoo.videocloud.view.FaceUPopWindow;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -97,21 +99,10 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
     private int recordTimeCount = 0;
 
     /*popWindow View*/
-    private PopupWindow mBeautyPopWindow;
-    private ImageView popViewBeautyButton;
-    private ImageView popViewWhiteButton;
-    private ImageView popViewSharpfaceButton;
-    private ImageView popViewBigeyeButton;
-    private ImageView popViewClose;
-    private ImageView popViewConfirm;
-    private SeekBar popViewSeekBar;
-    private float mBeautyRatio;
-    private float mWhitRatio;
-    private float mSharpFaceRatio;
-    private float mBigEyeRatio;
+    private BeautyPopWindow mBeautyPopWindow;
 
     /*FaceUWindow view*/
-    private PopupWindow mFaceUPopWindow;
+    private FaceUPopWindow mFaceUPopWindow;
 
     /*recordMessage View*/
     private TextView sdkVersionTextView;
@@ -146,8 +137,6 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
     private String resolutionRatioSp;
     private boolean onlyVoiceBoolean;/*是否是纯音频*/
 
-    private RecyclerView mfaceURecyclerView;
-    private ArrayList<String> faceUfilePathArrayList = new ArrayList<String>();
 
     /*面部特征点相关start 测试用*/
     private boolean DRAWFACAPOINTS = false;/*绘制面部特征点 （测试用）*/
@@ -301,7 +290,7 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
             mOverlap.getHolder().addCallback(new SurfaceHolder.Callback() {
                 @Override
                 public void surfaceChanged(SurfaceHolder holder, int format,
-                        int width, int height) {
+                                           int width, int height) {
                     if (matrix == null) {
                         matrix = new Matrix();
                         matrix.postScale(-1, 1); //测试前置摄像头镜像水平翻转
@@ -600,28 +589,6 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
                     }
                 }
                 break;
-            case R.id.record_popwindow_beauty:
-                setBeautyPopWindowSelectButton(popViewBeautyButton);
-                popViewSeekBar.setProgress((int) (mBeautyRatio * 100));
-                break;
-            case R.id.record_popwindow_white:
-                setBeautyPopWindowSelectButton(popViewWhiteButton);
-                popViewSeekBar.setProgress((int) (mWhitRatio * 100));
-                break;
-            case R.id.record_popwindow_sharpface:
-                setBeautyPopWindowSelectButton(popViewSharpfaceButton);
-                popViewSeekBar.setProgress((int) (mSharpFaceRatio * 100));
-                break;
-            case R.id.record_popwindow_bigeye:
-                setBeautyPopWindowSelectButton(popViewBigeyeButton);
-                popViewSeekBar.setProgress((int) (mBigEyeRatio * 100));
-                break;
-            case R.id.record_popwindow_close:
-                mBeautyPopWindow.dismiss();
-                break;
-            case R.id.record_popwindow_confirm:
-                mBeautyPopWindow.dismiss();
-                break;
         }
 
         if (v == mExitCancel) {
@@ -640,21 +607,45 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
     private void showBeautyPopWindow() {
         mQhvcLiveKitAdvanced.openBeauty();/*开启美颜功能*/
         if (mBeautyPopWindow == null) {
-            View popView = LayoutInflater.from(this).inflate(R.layout.beauty_popwindow_layout, null);
-            initBeautyPopWindowView(popView);
-            mBeautyPopWindow = new PopupWindow(popView, WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
-            mBeautyPopWindow.setOutsideTouchable(true);
-            mBeautyPopWindow.setBackgroundDrawable(new BitmapDrawable());
-            mBeautyPopWindow.setFocusable(true);
-            mBeautyPopWindow.setTouchable(true);
-            mBeautyPopWindow.setAnimationStyle(R.style.popupWindowAnimation);
+            mBeautyPopWindow = new BeautyPopWindow(this);
             mBeautyPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
             controlerLayout.setVisibility(View.INVISIBLE);
-            popViewBeautyButton.setSelected(true);/*第一次进来默认选第一个*/
             mBeautyPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
                 @Override
                 public void onDismiss() {
                     controlerLayout.setVisibility(View.VISIBLE);
+                }
+            });
+            mBeautyPopWindow.setSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser) {
+                        float fl = (float) (progress * 0.01);
+                        switch ((int) seekBar.getTag()) {
+                            case R.id.record_popwindow_beauty:
+                                mQhvcLiveKitAdvanced.setBeautyRatio(fl);
+                                break;
+                            case R.id.record_popwindow_white:
+                                mQhvcLiveKitAdvanced.setWhiteRatio(fl);
+                                break;
+                            case R.id.record_popwindow_sharpface:
+                                mQhvcLiveKitAdvanced.setSharpFaceRatio(fl);
+                                break;
+                            case R.id.record_popwindow_bigeye:
+                                mQhvcLiveKitAdvanced.setBigEyeRatio(fl);
+                                break;
+                        }
+                    }
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+
                 }
             });
         } else {
@@ -667,116 +658,6 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
         }
     }
 
-    private void initBeautyPopWindowView(View popView) {
-        popViewBeautyButton = (ImageView) popView.findViewById(R.id.record_popwindow_beauty);
-        popViewBeautyButton.setOnClickListener(this);
-        popViewWhiteButton = (ImageView) popView.findViewById(R.id.record_popwindow_white);
-        popViewWhiteButton.setOnClickListener(this);
-        popViewSharpfaceButton = (ImageView) popView.findViewById(R.id.record_popwindow_sharpface);
-        popViewSharpfaceButton.setOnClickListener(this);
-        popViewBigeyeButton = (ImageView) popView.findViewById(R.id.record_popwindow_bigeye);
-        popViewBigeyeButton.setOnClickListener(this);
-        if (horizontalBoolean) {
-            popViewSharpfaceButton.setVisibility(View.INVISIBLE);
-            popViewBigeyeButton.setVisibility(View.INVISIBLE);
-        }
-        popViewClose = (ImageView) popView.findViewById(R.id.record_popwindow_close);
-        popViewClose.setOnClickListener(this);
-        popViewConfirm = (ImageView) popView.findViewById(R.id.record_popwindow_confirm);
-        popViewConfirm.setOnClickListener(this);
-        popViewSeekBar = (SeekBar) popView.findViewById(R.id.record_popwindow_beauty_seekbar);
-        popViewSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    if (popViewBeautyButton.isSelected()) {/*选中美颜*/
-                        float fl = (float) (progress * 0.01);
-                        mQhvcLiveKitAdvanced.setBeautyRatio(fl);
-                        mBeautyRatio = fl;
-                    } else if (popViewWhiteButton.isSelected()) {/*选中美白*/
-                        float fl = (float) (progress * 0.01);
-                        mQhvcLiveKitAdvanced.setWhiteRatio(fl);
-                        mWhitRatio = fl;
-                    } else if (popViewSharpfaceButton.isSelected()) {/*选中瘦脸*/
-                        float fl = (float) (progress * 0.01);
-                        mQhvcLiveKitAdvanced.setSharpFaceRatio(fl);
-                        mSharpFaceRatio = fl;
-                    } else if (popViewBigeyeButton.isSelected()) {/*选中大眼*/
-                        float fl = (float) (progress * 0.01);
-                        mQhvcLiveKitAdvanced.setBigEyeRatio(fl);
-                        mBigEyeRatio = fl;
-                    }
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-    }
-
-    private void setBeautyPopWindowSelectButton(View selectView) {
-        popViewBeautyButton.setSelected(false);
-        popViewWhiteButton.setSelected(false);
-        popViewSharpfaceButton.setSelected(false);
-        popViewBigeyeButton.setSelected(false);
-        selectView.setSelected(true);
-    }
-
-    /**
-     * 初始化faceUpopWindow
-     * @param faceUView
-     */
-    private void initFaceUPopWindowView(View faceUView) {
-        mfaceURecyclerView = (RecyclerView) faceUView.findViewById(R.id.face_u_reclcyerview);
-        GridLayoutManager mgr = new GridLayoutManager(this, 6);
-        mgr.setOrientation(LinearLayoutManager.VERTICAL);
-        mfaceURecyclerView.setLayoutManager(mgr);
-        String appRootDirPath = AndroidUtil.getAppDir() + "eff";
-        File rootFile = new File(appRootDirPath);
-        File[] array = rootFile.listFiles();
-        if (array == null) {
-            return;
-        }
-        ArrayList<Bitmap> bitmapArrayList = new ArrayList<Bitmap>();
-        faceUfilePathArrayList.clear();
-        bitmapArrayList.add(BitmapFactory.decodeResource(getResources(), R.drawable.recorder_face_u_close));
-        faceUfilePathArrayList.add("");/*关闭按钮*/
-        for (int i = 0; i < array.length; i++) {
-            String fileName = array[i].getName();
-            faceUfilePathArrayList.add(appRootDirPath + File.separator + fileName);
-            Bitmap bitmap = BitmapFactory.decodeFile(appRootDirPath + File.separator + fileName + File.separator + fileName + ".png");
-            if (bitmap != null) {
-                bitmapArrayList.add(bitmap);
-            }
-        }
-        FaceURecylerViewAdapter recylerViewAdapter = new FaceURecylerViewAdapter(bitmapArrayList);
-        recylerViewAdapter.setOnItemClickListener(new FaceURecylerViewAdapter.MyItemClickListener() {
-            @Override
-            public void onItemClick(View view, int postion) {
-
-                if (mQhvcLiveKitAdvanced != null) {
-                    if (postion == 0) {
-                        mQhvcLiveKitAdvanced.stopFaceU();
-                    } else {
-                        mQhvcLiveKitAdvanced.showFaceU(faceUfilePathArrayList.get(postion), -1, new QHVCFaceUCallBack() {
-                            @Override
-                            public void onFaceUBack(String sourcePath, String faceUInfo) {
-
-                            }
-                        });
-                    }
-                }
-            }
-        });
-        mfaceURecyclerView.setAdapter(recylerViewAdapter);
-    }
 
     private void showFaceUPopWindow() {
         if (horizontalBoolean) {
@@ -784,20 +665,30 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
             return;
         }
         if (mFaceUPopWindow == null) {
-            View faceUView = LayoutInflater.from(this).inflate(R.layout.face_u_popwindow_layout, null);
-            initFaceUPopWindowView(faceUView);
-            mFaceUPopWindow = new PopupWindow(faceUView, WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT, true);
-            mFaceUPopWindow.setBackgroundDrawable(new BitmapDrawable());
-            mFaceUPopWindow.setOutsideTouchable(true);
-            mFaceUPopWindow.setFocusable(true);
-            mFaceUPopWindow.setTouchable(true);
-            mFaceUPopWindow.setAnimationStyle(R.style.popupWindowAnimation);
+            mFaceUPopWindow = new FaceUPopWindow(this);
             mFaceUPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
             controlerLayout.setVisibility(View.INVISIBLE);
             mFaceUPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
                 @Override
                 public void onDismiss() {
                     controlerLayout.setVisibility(View.VISIBLE);
+                }
+            });
+            mFaceUPopWindow.setOnItemClickListener(new FaceUPopWindow.MyItemClickListener() {
+                @Override
+                public void onItemClick(View view, int postion, String faceUPath) {
+                    if (mQhvcLiveKitAdvanced != null) {
+                        if (postion == 0) {
+                            mQhvcLiveKitAdvanced.stopFaceU();
+                        } else {
+                            mQhvcLiveKitAdvanced.showFaceU(faceUPath, -1, new QHVCFaceUCallBack() {
+                                @Override
+                                public void onFaceUBack(String sourcePath, String faceUInfo) {
+
+                                }
+                            });
+                        }
+                    }
                 }
             });
         } else {
@@ -868,7 +759,7 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX,
-                float distanceY) {
+                                float distanceY) {
             return false;
         }
 
@@ -879,7 +770,7 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
-                float velocityY) {
+                               float velocityY) {
             //向左滑
             RecorderLogger.i(TAG, "LiveCloud--------onFling");
             if (e1.getX() - e2.getX() > FLING_MIN_DISTANCE
@@ -964,9 +855,9 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
         mExitDialog = new BaseDialog(this);
         mExitDialog.show();
         mExitDialog
-                .setChooseDialog(new TextView[] {
+                .setChooseDialog(new TextView[]{
                         mExitCancel, mExitConfirm
-        });
+                });
         mExitDialog.hasTitle(false);
         mExitDialog.setMsgText("确定要退出吗？");
     }
@@ -1072,8 +963,8 @@ public class RecorderActivityNewAPI extends Activity implements View.OnClickList
 
     /**
      * 电话状态监听.
-     * @author stephen
      *
+     * @author stephen
      */
     class OnePhoneStateListener extends PhoneStateListener {
         @Override

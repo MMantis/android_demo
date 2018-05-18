@@ -14,6 +14,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -25,6 +26,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.qihoo.livecloud.interact.api.QHVCInteractiveAudioFrameCallback;
@@ -56,10 +58,13 @@ import com.qihoo.videocloud.interactbrocast.modle.InteractUserModel;
 import com.qihoo.videocloud.interactbrocast.net.InteractServerApi;
 import com.qihoo.videocloud.interactbrocast.ui.MyCommonButton;
 import com.qihoo.videocloud.interactbrocast.ui.MyVideoView;
+import com.qihoo.videocloud.interactbrocast.ui.TestApiPopupWindow;
 import com.qihoo.videocloud.utils.AndroidUtil;
 import com.qihoo.videocloud.utils.LibTaskController;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
 import com.qihoo.videocloud.view.BaseDialog;
+import com.qihoo.videocloud.view.BeautyPopWindow;
+import com.qihoo.videocloud.view.FaceUPopWindow;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -73,10 +78,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.qihoo.videocloud.interactbrocast.InteractSettingActivity.fpsList;
+
 public class InteractActivity extends BaseActivity implements InteractCallBackEvent, View.OnClickListener {
 
     private RelativeLayout mVideoLayer;
-    //private InteractRecorderController mRecorderController;
 
     private MyCommonButton myCommonButton;
 
@@ -104,6 +110,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     private QHVCLiveKitAdvanced mQhvcLiveKitAdvanced;
     private int videoEncodeWidth;
     private int videoEncodeHeight;
+    private boolean isFirstIn = true;/*是否是第一次进入*/
 
     //FaceU
     private boolean mOpenFaceU = false;
@@ -155,6 +162,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     private int fps;
     private int quality;
     private ArrayList<String> applyList = new ArrayList<>();
+
+    private BeautyPopWindow mBeautyPopWindow;
+    private FaceUPopWindow mFaceUPopWindow;
+
+    private String resolution;
 
     private QHVCInteractiveAudioFrameCallback mHostinAudioFrameCallback = new QHVCInteractiveAudioFrameCallback() {
 
@@ -214,6 +226,10 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         if (OPEN_MERGE_STREAM) {
             setMixStreamInfo();
         }
+
+        //为了测试setCloudControlRole()接口，请在测试此云控时打开
+        //TestApiPopupWindow.setCloudControlRole(mInteractEngine);
+
         joinChannel();
     }
 
@@ -274,6 +290,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         if (mQhvcLiveKitAdvanced.isSupportHardwareCoding()) { /*支持硬编*/
             mQhvcLiveKitAdvanced.setEncodeMethod(QHVCConstants.RecorderConstants.ENCODE_HARDWARE);/*设置编码方式（硬编或者软编）*/
             QHVCMediaSettings.Builder mQHVCMediaSettingsBuilder = new QHVCMediaSettings.Builder();
+            QHVCSharedPreferences pref = QHVCSharedPreferences.getInstence();
+            int prefIndex = pref.getInt(InteractConstant.BROCAST_SETTING_PROFILE_TYPE,
+                    InteractConstant.DEFAULT_PROFILE_IDX);
+            if (prefIndex > InteractConstant.VIDEO_PROFILES.length - 1) {
+                prefIndex = InteractConstant.DEFAULT_PROFILE_IDX;
+            }
+            mQHVCMediaSettingsBuilder.setFps(Integer.valueOf(fpsList[prefIndex]));
             mQhvcLiveKitAdvanced.setMediaSettings(mQHVCMediaSettingsBuilder.build());
 
             mQhvcLiveKitAdvanced.setHardEncodeSize(QHVCConstants.HardEncoderSize.ENCODER_360X640); //TODO 一会看 编码的宽高
@@ -291,6 +314,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     }
 
     private void initView() {
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_interact);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mCurrOrientation = Constants.EMode.EMODE_LANDSCAPE;
@@ -316,27 +342,10 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             }
         });
 
+
         MyVideoView bigVideoView = (MyVideoView) findViewById(R.id.big_video);
 
         if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-            /*
-            mRecorderController = new InteractRecorderController(this);
-            mRecorderController.setScreenWH(mScreenWidth, mScreenHeight);
-            mRecorderController.setOrientation(mCurrOrientation);
-
-            if (InteractConstant.CURR_VIDEO_CAPTURE == InteractConstant.VideoCapture.RECORD_GPU ||
-                    InteractConstant.CURR_VIDEO_CAPTURE == InteractConstant.VideoCapture.RECORD_GPU_READPIXELS) {
-                GLSurfaceView gLView = new GLSurfaceView(this);
-                gLView.setEGLContextClientVersion(2); // select GLES 2.0
-                bigVideoView.setBgView(gLView, mScreenWidth, mScreenHeight);
-                mRecorderController.initGLSurfaceView(gLView);
-            } else {
-                TextureView myTexture = new TextureView(this);
-                bigVideoView.setBgView(myTexture, mScreenWidth, mScreenHeight);
-                mRecorderController.initGLSurfaceView(myTexture);
-            }
-            */
-
             if (mSurfaceView == null) {
                 mSurfaceView = new QHVCSurfaceView(InteractActivity.this);
             }
@@ -484,16 +493,6 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             public void run() {
                 Logger.d(InteractConstant.TAG, InteractConstant.TAG + " : 调度成功，开始 直播！");
                 if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-                    /*
-                    if (mRecorderController != null) {
-                        mRecorderController.startCameraRecorder();
-                    } else {
-                        Logger.e(InteractConstant.TAG,
-                                InteractConstant.TAG + " : 调度成功，但mRecorderController is NULL!开播失败！");
-                        showToast("调度成功，但mRecord;erController is NULL!开播失败！");
-                    }
-                     */
-
                     SurfaceTexture surfaceTexture = mWorker.getSurfaceTexture(videoEncodeWidth, videoEncodeHeight);
                     if (surfaceTexture != null) {
                         mQhvcLiveKitAdvanced.setSharedSurfaceTexture(surfaceTexture);
@@ -532,25 +531,23 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     @Override
     protected void onResume() {
         super.onResume();
-        /* //Todo
-        if (mRecorderController != null) {
-            if (checkCameraPermission()) {
-                mRecorderController.resumeCamera();
+        Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onResume() in InteractActivity...");
+
+        if (!isFirstIn) {
+            if(mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.resumePreview();
             }
         }
-        */
-        Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onResume() in InteractActivity...");
+        isFirstIn = false;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onPause() in InteractActivity...");
-        /* //TODO
-        if (mRecorderController != null) {
-            mRecorderController.releaseCamera();
+        if (mQhvcLiveKitAdvanced != null) {
+            mQhvcLiveKitAdvanced.pausePreview();
         }
-         */
     }
 
     private void dismissRoom() {
@@ -600,11 +597,12 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         leaveIMRoom();
         Logger.d(InteractConstant.TAG, InteractConstant.TAG + ": onDestroy() in InteractActivity...");
 
-        /*
-        if (mRecorderController != null) {
-            mRecorderController.destroy();
+        if (OPEN_MERGE_STREAM) {
+            if (mInteractEngine != null) {
+                mInteractEngine.clearVideoCompositingLayout();
+            }
         }
-        */
+
         if (mWorker != null) {
             mWorker.leaveChannel(roomName);
         }
@@ -623,6 +621,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         //释放业务美颜采集相关资源
         if (mQhvcLiveKitAdvanced != null) {
             mQhvcLiveKitAdvanced.release();/*释放资源*/
+            mQhvcLiveKitAdvanced = null;
         }
 
         LibTaskController.postDelayed(new Runnable() {
@@ -645,10 +644,6 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         mWorker.waitForReady();
 
         mInteractEngine = mWorker.getInteractEngine();
-
-//        if (mRecorderController != null) {
-//            mRecorderController.setVideoSourceListener(mWorker);
-//        }
     }
 
     private void doConfigEngine(int cRole) {
@@ -659,6 +654,8 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             prefIndex = InteractConstant.DEFAULT_PROFILE_IDX;
         }
         int vProfile = InteractConstant.VIDEO_PROFILES[prefIndex];
+
+        resolution = InteractSettingActivity.resolutionRatioList[prefIndex];
 
         setVideoWidthAndHeight(vProfile);
         //int vProfile = 30;
@@ -764,11 +761,9 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     // 切换摄像头
     private void doSwitchCamera() {
         if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-            /*
-            if (mRecorderController != null) {
-                mRecorderController.switchCamera();
+            if (mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.switchCameraFacing();
             }
-            */
         } else {
             if (mInteractEngine != null) {
                 mInteractEngine.switchCamera();
@@ -813,32 +808,16 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         }
     }
 
-    //TODO 还需要做美颜的调节UI
     private void doBeauty(ImageView view) {
         if (mQhvcLiveKitAdvanced != null) {
-            mQhvcLiveKitAdvanced.openBeauty();/*开启美颜功能*/
-            mQhvcLiveKitAdvanced.setBeautyRatio(0.9f);
+            showBeautyPopWindow();
         }
     }
 
-    //TODO 还需要做FaceU的选择界面
-    boolean showFaceud = false;
     private void doFaceU(ImageView view) {
-        if (showFaceud) {
-            String faceuPathTest = AndroidUtil.getAppDir() + "eff/30004_1";
-            if (mQhvcLiveKitAdvanced != null) {
-                mQhvcLiveKitAdvanced.showFaceU(faceuPathTest, -1, new QHVCFaceUCallBack() {
-                    @Override
-                    public void onFaceUBack(String sourcePath, String faceUInfo) {
-                        Logger.i(InteractConstant.TAG, "sourcePath: " + sourcePath + ", faceuInfo: " + faceUInfo);
-                    }
-                });
-
-            }
-        } else {
-            mQhvcLiveKitAdvanced.stopFaceU();
+        if (mQhvcLiveKitAdvanced != null) {
+            showFaceUPopWindow();
         }
-        showFaceud = !showFaceud;
     }
 
     private void doEnableLoaclVideo(ImageView btn) {
@@ -982,7 +961,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         videoView.setVideoViewListener(new MyVideoView.VideoViewListener() {
             @Override
             public void changeToFullScreen(MyVideoView videoView1) {
-                changeToFullView(videoView1);
+
             }
 
             @Override
@@ -1034,66 +1013,10 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         updateMixStream();
     }
 
-    private void changeToFullView(MyVideoView videoView) {
-        /*
-        if (mLargeVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
-            if (mRecorderController != null) {
-                mRecorderController.releaseCamera();
-            }
-        }
-
-        videoView.changeToLargeVideoView(mLargeVideoView);
-
-        if (videoView.getUid().equals(myUid)) {
-            videoView.setButtonVisible(MyVideoView.VIEW_BTN_VIDEO, View.GONE);
-            videoView.setButtonVisible(MyVideoView.VIEW_BTN_AUDIO, View.GONE);
-        }
-
-        mAllVideoMap.remove(mLargeVideoView.getUid());
-        mAllVideoMap.remove(videoView.getUid());
-        mAllVideoMap.put(mLargeVideoView.getUid(), mLargeVideoView);
-        mAllVideoMap.put(videoView.getUid(), videoView);
-
-        if (mLargeVideoView.getUid().equals(myUid) == false) {
-            //拉大流
-            mInteractEngine.setRemoteVideoStream(mLargeVideoView.getUid(), QHVCInteractiveConstant.VIDEO_STREAM_HIGH);
-        }
-        if (videoView.getUid().equals(myUid) == false) {
-            //换小流
-            mInteractEngine.setRemoteVideoStream(videoView.getUid(), QHVCInteractiveConstant.VIDEO_STREAM_LOW);
-        }
-
-        if (mLargeVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
-            if (mRecorderController != null) {
-                LibTaskController.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mRecorderController.resumeCamera();
-                    }
-                }, 300);
-            }
-        }
-        */
-    }
-
     private void removeRemoteVideo(String uid, int reason) {
         if (mAllVideoMap.containsKey(uid) && !uid.equals(myUid)) {
             MyVideoView videoView = mAllVideoMap.get(uid);
             if (videoView != null) {
-                if (videoView == mLargeVideoView) {
-                    MyVideoView localVideoView = null;
-                    Set<String> set = mAllVideoMap.keySet();
-                    for (String key : set) {
-                        MyVideoView videoViewTmp = mAllVideoMap.get(key);
-                        if (videoViewTmp != null) {
-                            if (videoViewTmp.getUid().equals(myUid)) {
-                                localVideoView = videoViewTmp;
-                                break;
-                            }
-                        }
-                    }
-                    changeToFullView(localVideoView);
-                }
                 videoView = mAllVideoMap.get(uid);
                 mVideoLayer.removeView(videoView);
                 mAllVideoMap.remove(uid);
@@ -1138,7 +1061,11 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
     @Override
     public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume) {
-
+        StringBuffer stringBuffer = new StringBuffer();
+        for (QHVCInteractiveEventHandler.AudioVolumeInfo info: speakers) {
+            stringBuffer.append(info.toString());
+        }
+        Logger.i(InteractConstant.TAG, "onAudioVolumeIndication, totalVolume: " + totalVolume + stringBuffer.toString());
     }
 
     @Override
@@ -1165,7 +1092,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
             case QHVCInteractiveConstant.ErrorType.JOIN_ERR:
                 //加入频道失败，需退出后重新加入频道 TODO
                 showToast("加入频道失败！err: " + errCode);
-                onBackPressed();
+                finish();
                 break;
             case QHVCInteractiveConstant.ErrorType.LOADENGINE_ERROR:
                 Logger.w(InteractConstant.TAG, "LoadInteractEngine failed! errCode: " + errCode);
@@ -1177,7 +1104,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                     intent.putExtra(InteractConstant.INTENT_EXTRA_SDK_USIN_RIGHT, false);
                     InteractActivity.this.startActivity(intent);
                 }
-                onBackPressed();
+                finish();
                 break;
             case QHVCInteractiveConstant.ErrorType.PUBLISH_ERR:
                 //先不用处理
@@ -1236,13 +1163,13 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
     public void onConnectionLost(int errCode) {
         //  连接丢失回调, 业务需要做UI展示
         showToast("已断开！err: " + errCode);
-        onBackPressed();
+        finish();
     }
 
     @Override
     public void onFirstRemoteVideoFrame(String uid, int width, int height, int elapsed) {
         Log.i("HCM","----onFirstRemoteVideoFrame----");
-//        addMixStream(uid);
+        //        addMixStream(uid);
     }
 
     //TODO 需考虑纯音频连麦情况
@@ -1366,7 +1293,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
         roomIdTextView.setText("房间号：" + iteractRoom.getRoomId());
         sdkVersionTextView.setText("SDK版本号：" + QHVCInteractiveKit.getVersion());
         roleTextView.setText("当前角色：主播");
-        resolutionRatioView.setText("分辨率：640*360");
+        resolutionRatioView.setText("分辨率："+ resolution);
         codeRateView.setText("视频码率: " + codeRate + " kbps");
         fpsView.setText("视频帧率：" + fps + " fps");
         videoQualityView.setText("视频质量：" + quality);
@@ -1485,7 +1412,6 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 }
             }
         }
-
     }
 
     private void initNumberPopWindowView(View popView) {
@@ -1517,7 +1443,7 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
                 showRoomNumberPopWindow();
                 break;
             case R.id.interact_close_room:
-                onBackPressed();
+                finish();
                 break;
             case R.id.interact_return_messagelayout:
                 rootLayout.setVisibility(View.VISIBLE);
@@ -1747,6 +1673,114 @@ public class InteractActivity extends BaseActivity implements InteractCallBackEv
 
     public QHVCInteractiveKit getInteractEngine() {
         return mInteractEngine;
+    }
+
+    public HashMap<String, MyVideoView> getAllUser() {
+        return this.mAllVideoMap;
+    }
+
+    /**
+     * 仅用于测试互动直播接口，业务接入时请忽略
+     */
+    private void showApiTestView() {
+        TestApiPopupWindow apiPopupWindow = new TestApiPopupWindow(InteractActivity.this, mInteractEngine);
+        apiPopupWindow.showPopupWindow();
+    }
+
+    /**
+     * 显示美颜PopWindow
+     */
+    private void showBeautyPopWindow() {
+        mQhvcLiveKitAdvanced.openBeauty();/*开启美颜功能*/
+        if (mBeautyPopWindow == null) {
+            mBeautyPopWindow = new BeautyPopWindow(this);
+            mBeautyPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+            myCommonButton.setVisibility(View.INVISIBLE);
+            mBeautyPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    myCommonButton.setVisibility(View.VISIBLE);
+                }
+            });
+            mBeautyPopWindow.setSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser) {
+                        float fl = (float) (progress * 0.01);
+                        switch ((int) seekBar.getTag()) {
+                            case R.id.record_popwindow_beauty:
+                                mQhvcLiveKitAdvanced.setBeautyRatio(fl);
+                                break;
+                            case R.id.record_popwindow_white:
+                                mQhvcLiveKitAdvanced.setWhiteRatio(fl);
+                                break;
+                            case R.id.record_popwindow_sharpface:
+                                mQhvcLiveKitAdvanced.setSharpFaceRatio(fl);
+                                break;
+                            case R.id.record_popwindow_bigeye:
+                                mQhvcLiveKitAdvanced.setBigEyeRatio(fl);
+                                break;
+                        }
+                    }
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+
+                }
+            });
+        } else {
+            if (!mBeautyPopWindow.isShowing()) {
+                mBeautyPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                myCommonButton.setVisibility(View.INVISIBLE);
+            } else {
+                mBeautyPopWindow.dismiss();
+            }
+        }
+    }
+
+
+    private void showFaceUPopWindow() {
+        if (mFaceUPopWindow == null) {
+            mFaceUPopWindow = new FaceUPopWindow(this);
+            mFaceUPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+            myCommonButton.setVisibility(View.INVISIBLE);
+            mFaceUPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    myCommonButton.setVisibility(View.VISIBLE);
+                }
+            });
+            mFaceUPopWindow.setOnItemClickListener(new FaceUPopWindow.MyItemClickListener() {
+                @Override
+                public void onItemClick(View view, int postion, String faceUPath) {
+                    if (mQhvcLiveKitAdvanced != null) {
+                        if (postion == 0) {
+                            mQhvcLiveKitAdvanced.stopFaceU();
+                        } else {
+                            mQhvcLiveKitAdvanced.showFaceU(faceUPath, -1, new QHVCFaceUCallBack() {
+                                @Override
+                                public void onFaceUBack(String sourcePath, String faceUInfo) {
+
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            if (!mFaceUPopWindow.isShowing()) {
+                mFaceUPopWindow.showAtLocation(mSurfaceView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                myCommonButton.setVisibility(View.INVISIBLE);
+            } else {
+                mFaceUPopWindow.dismiss();
+            }
+        }
     }
 
 }

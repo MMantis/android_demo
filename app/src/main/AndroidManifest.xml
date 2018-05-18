@@ -197,17 +197,17 @@
             android:name="com.qihoo.videocloud.interactbrocast.InteractActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.NoTitleBar" />
+            android:theme="@style/RecordActivityTheme" />
         <activity
             android:name="com.qihoo.videocloud.interactbrocast.InteractAudienceActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.NoTitleBar" />
+            android:theme="@style/RecordActivityTheme" />
         <activity
             android:name="com.qihoo.videocloud.interactbrocast.PartyMainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.NoTitleBar" />
+            android:theme="@style/RecordActivityTheme" />
         <activity
             android:name="com.qihoo.videocloud.interactbrocast.InteractSettingActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"

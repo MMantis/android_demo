@@ -63,6 +63,10 @@ public abstract class MyCommonButton implements View.OnClickListener {
         }
     }
 
+    public void setVisibility(int visibility){
+        view.setVisibility(visibility);
+    }
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {

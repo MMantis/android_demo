@@ -142,6 +142,9 @@ public class PartyMainActivity extends BaseActivity implements InteractCallBackE
     private void initView() {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_party_main_layout);
         mPartyGridView = (RecyclerView) findViewById(R.id.party_gridView);
         GridLayoutManager mgr = new GridLayoutManager(PartyMainActivity.this, 2);

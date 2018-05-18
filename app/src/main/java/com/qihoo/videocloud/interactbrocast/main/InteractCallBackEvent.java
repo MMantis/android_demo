@@ -28,6 +28,12 @@ public interface InteractCallBackEvent {
      */
     public void onJoinChannelSuccess(String channel, String uid, int elapsed);
 
+    /**
+     * 说话声音音量提示回调
+     *  提示谁在说话及其音量，默认禁用。可以通过 enableAudioVolumeIndication 方法设置。
+     * @param speakers 说话者（数组）。
+     * @param totalVolume （混音后的）总音量（ 0~255）
+     */
     public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume);
 
     /**

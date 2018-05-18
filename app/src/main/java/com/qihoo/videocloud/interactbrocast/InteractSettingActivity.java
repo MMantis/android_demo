@@ -33,11 +33,11 @@ public class InteractSettingActivity extends Activity implements View.OnClickLis
     private LinearLayout resetLayout;
     private LinearLayout confirmLayout;
     private QHVCSharedPreferences sharedPreferences;
-    private static String[] resolutionRatioList = {
+    public static String[] resolutionRatioList = {
             "240x240", "424x240", "360x360", "360x360", "640x360", "640x360",
             "640x360", "480x480", "480x480", "848x480", "848x480", "1280x720", "1280x720"
     }; //分辨率数组
-    private static String[] fpsList = {
+    public static String[] fpsList = {
             "15", "15", "15", "30", "15", "15", "15", "15", "30", "15", "30", "15", "30"
     }; //帧率数组
     private static String[] codeRate = {

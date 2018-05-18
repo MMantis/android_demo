@@ -780,6 +780,11 @@ public class VodActivity extends Activity implements View.OnClickListener {
                 public void onRecordSuccess() {
                     Logger.d(TAG, "record gif success");
                 }
+
+                @Override
+                public void onRecordFailed(int errorCode) {
+
+                }
             });
             Logger.d(TAG, "start recorder. ret: " + ret);
         }
@@ -804,6 +809,11 @@ public class VodActivity extends Activity implements View.OnClickListener {
                 @Override
                 public void onRecordSuccess() {
                     Logger.d(TAG, "record mp4 success");
+                }
+
+                @Override
+                public void onRecordFailed(int errorCode) {
+
                 }
             });
             Logger.d(TAG, "start recorder. ret: " + ret);

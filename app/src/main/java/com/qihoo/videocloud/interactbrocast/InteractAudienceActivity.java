@@ -3,6 +3,7 @@ package com.qihoo.videocloud.interactbrocast;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.SurfaceTexture;
 import android.graphics.drawable.BitmapDrawable;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
@@ -22,12 +24,19 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.qihoo.livecloud.interact.api.QHVCInteractiveConstant;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveEventHandler;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveKit;
 import com.qihoo.livecloud.interact.api.QHVCInteractiveUtils;
+import com.qihoo.livecloud.livekit.api.QHVCConstants;
+import com.qihoo.livecloud.livekit.api.QHVCFaceUCallBack;
+import com.qihoo.livecloud.livekit.api.QHVCLiveKit;
+import com.qihoo.livecloud.livekit.api.QHVCLiveKitAdvanced;
+import com.qihoo.livecloud.livekit.api.QHVCMediaSettings;
+import com.qihoo.livecloud.livekit.api.QHVCSurfaceView;
 import com.qihoo.livecloud.tools.Constants;
 import com.qihoo.livecloud.tools.LiveCloudConfig;
 import com.qihoo.livecloud.tools.Logger;
@@ -47,6 +56,8 @@ import com.qihoo.videocloud.interactbrocast.ui.MyCommonButton;
 import com.qihoo.videocloud.interactbrocast.ui.MyVideoView;
 import com.qihoo.videocloud.utils.LibTaskController;
 import com.qihoo.videocloud.utils.QHVCSharedPreferences;
+import com.qihoo.videocloud.view.BeautyPopWindow;
+import com.qihoo.videocloud.view.FaceUPopWindow;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,6 +76,7 @@ import static com.qihoo.videocloud.interactbrocast.InteractIMManager.CMD_ANCHOR_
 import static com.qihoo.videocloud.interactbrocast.InteractIMManager.CMD_ANCHOR_REFUSE_JOIN;
 import static com.qihoo.videocloud.interactbrocast.InteractIMManager.CMD_GUEST_JOIN_NOTIFY;
 import static com.qihoo.videocloud.interactbrocast.InteractIMManager.CMD_GUEST_QUIT_NOTIFY;
+import static com.qihoo.videocloud.interactbrocast.InteractSettingActivity.fpsList;
 import static com.qihoo.videocloud.interactbrocast.main.InteractConstant.INTENT_EXTRA_SDK_USIN_RIGHT;
 
 public class InteractAudienceActivity extends BaseActivity implements View.OnClickListener, InteractCallBackEvent {
@@ -89,8 +101,6 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     //嘉宾相关View
     private MyCommonButton myCommonButton;
     private Button mBtnCloseHostIn;
-    private InteractRecorderController mRecorderController;
-    private InteractRecorderController mGuestRecorderController;
 
     private QHVCInteractiveKit mInteractEngine;
     private WorkerThread mWorker;
@@ -143,6 +153,16 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     private InteractAudienceRoomAudioNumberRecyclerViewAdapter mRoomAudioNumberRecyclerViewAdapter;
     private RecyclerView audioNumberRecyclerView;
 
+    //模拟业务做视频采集（支持美颜、faceU等）
+//    private QHVCSurfaceView mSurfaceView;
+    private QHVCLiveKitAdvanced mQhvcLiveKitAdvanced;
+    private int videoEncodeWidth;
+    private int videoEncodeHeight;
+    private BeautyPopWindow mBeautyPopWindow;
+    private FaceUPopWindow mFaceUPopWindow;
+
+    private String resolution;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -170,12 +190,6 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         InteractIMManager.getInstance().removeReceiveCommandistener(mOnReceiveCommandListener);
         leaveIMRoom();
 
-        //先关闭连麦的东西
-        if (mGuestRecorderController != null) {
-            mGuestRecorderController.releaseCamera();
-            mGuestRecorderController.destroy();
-            mGuestRecorderController = null;
-        }
         if (mWorker != null) {
             mWorker.leaveChannel(roomId);
         }
@@ -205,6 +219,43 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         if (workThreadPoolExecutor == null) {
             workThreadPoolExecutor = Executors.newSingleThreadExecutor();
         }
+
+        //5.0以上并且支持硬编码的机型使用业务做视频采集（支持美颜等）
+        if (QHVCLiveKit.getInstance(this).isSupportHardwareCoding()) {
+            mUserVideoCapture = InteractConstant.VIDEO_USER_CAPTURE;
+            initUserCapture();
+        } else {
+            mUserVideoCapture = InteractConstant.VIDEO_SDK_COMMON_CAPTURE;
+        }
+    }
+
+    private void initUserCapture() {
+        mQhvcLiveKitAdvanced = QHVCLiveKitAdvanced.getInstance(this.getApplicationContext());
+        String cid = InteractGlobalManager.getInstance().getChannelId();
+        mQhvcLiveKitAdvanced.setChannelId(cid);/*设置渠道Id*/
+        if (mQhvcLiveKitAdvanced.isSupportHardwareCoding()) { /*支持硬编*/
+            mQhvcLiveKitAdvanced.setEncodeMethod(QHVCConstants.RecorderConstants.ENCODE_HARDWARE);/*设置编码方式（硬编或者软编）*/
+            QHVCMediaSettings.Builder mQHVCMediaSettingsBuilder = new QHVCMediaSettings.Builder();
+            mQhvcLiveKitAdvanced.setMediaSettings(mQHVCMediaSettingsBuilder.build());
+            QHVCSharedPreferences pref = QHVCSharedPreferences.getInstence();
+            int prefIndex = pref.getInt(InteractConstant.GUEST_SETTING_PROFILE_TYPE,
+                    InteractConstant.DEFAULT_PROFILE_IDX);
+            if (prefIndex > InteractConstant.VIDEO_PROFILES.length - 1) {
+                prefIndex = InteractConstant.DEFAULT_PROFILE_IDX;
+            }
+            mQHVCMediaSettingsBuilder.setFps(Integer.valueOf(fpsList[prefIndex]));
+            mQhvcLiveKitAdvanced.setHardEncodeSize(QHVCConstants.HardEncoderSize.ENCODER_360X640); //TODO 一会看 编码的宽高
+
+            mQhvcLiveKitAdvanced.setEnableAudio(false); //此处借用推流采集模块，必须禁掉音频，因为互动直播本身已做音频采集。
+
+            mQhvcLiveKitAdvanced.setCameraFacing(QHVCConstants.Camera.FACING_FRONT);/*设置使用前置或者后置摄像头*/
+            if (mCurrOrientation == Constants.EMode.EMODE_LANDSCAPE) {
+                mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_LANDSCAPE, this);/*设置预览方向*/
+            } else {
+                mQhvcLiveKitAdvanced.setOrientation(Configuration.ORIENTATION_PORTRAIT, this);/*设置预览方向*/
+            }
+        }
+
     }
 
     private void showBroadcasterView() {
@@ -222,6 +273,9 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     }
 
     private void initView() {
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_interact_audience);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mCurrOrientation = Constants.EMode.EMODE_LANDSCAPE;
@@ -268,12 +322,12 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
             @Override
             public void doOnClickBeauty(ImageView view) {
-
+                showBeautyPopWindow();
             }
 
             @Override
             public void doOnClickFaceU(ImageView view) {
-
+                showFaceUPopWindow();
             }
 
             @Override
@@ -317,8 +371,8 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         myCommonButton.setViewVisible(R.id.btn_enable_video, View.GONE);
 
         //todo 暂时注掉美颜faceU功能按钮
-        myCommonButton.setViewVisible(R.id.btn_beauty, View.GONE);
-        myCommonButton.setViewVisible(R.id.btn_faceu, View.GONE);
+//        myCommonButton.setViewVisible(R.id.btn_beauty, View.GONE);
+//        myCommonButton.setViewVisible(R.id.btn_faceu, View.GONE);
         myCommonButton.setViewVisible(R.id.btn_filter, View.GONE);
 
         if (talkType == InteractConstant.TALK_TYPE_AUDIO) {
@@ -326,40 +380,13 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         }
     }
 
-    private void initLocalViewForGuest() {
-        if (mGuestRecorderController == null && mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mGuestRecorderController = new InteractRecorderController(InteractAudienceActivity.this);
-                    mGuestRecorderController.setScreenWH(mScreenWidth, mScreenHeight);
-                    mGuestRecorderController.setOrientation(mCurrOrientation);
-
-                    if (InteractConstant.CURR_VIDEO_CAPTURE == InteractConstant.VideoCapture.RECORD_GPU ||
-                            InteractConstant.CURR_VIDEO_CAPTURE == InteractConstant.VideoCapture.RECORD_GPU_READPIXELS) {
-                        GLSurfaceView gLView = new GLSurfaceView(InteractAudienceActivity.this);
-                        gLView.setEGLContextClientVersion(2); // select GLES 2.0
-                        mMainVideoView.setBgView(gLView, mScreenWidth, mScreenHeight);
-                        mGuestRecorderController.initGLSurfaceView(gLView);
-                        //mGuestRecorderController.setEnabledStart(true);
-                    } else {
-                        TextureView myTexture = new TextureView(InteractAudienceActivity.this);
-                        mMainVideoView.setBgView(myTexture, mScreenWidth, mScreenHeight);
-                        mGuestRecorderController.initGLSurfaceView(myTexture);
-                    }
-                    mMainVideoView.setUid(myUid);
-                    mMainVideoView.setAllButtonVisible(View.GONE);
-                }
-            });
-        }
-    }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (mCurrState == STATE_GUEST) {
-            if (mGuestRecorderController != null) {
-                mGuestRecorderController.resumeCamera();
+            if (mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.resumePreview();
             }
         }
     }
@@ -373,8 +400,8 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     protected void onPause() {
         super.onPause();
         if (mCurrState == STATE_GUEST) {
-            if (mGuestRecorderController != null) {
-                mGuestRecorderController.releaseCamera();
+            if (mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.pausePreview();
             }
         }
     }
@@ -411,7 +438,12 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     }
 
     private void guestStartPreview() {
-        startPreview();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                startPreview();
+            }
+        });
         mCurrState = STATE_GUEST;
         notifyIMGuestJoin();
         myCommonButton.setViewVisible(R.id.btn_mute_audio, View.VISIBLE);
@@ -477,16 +509,69 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     }
 
     private void startPreview() {
-        if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-            if (mGuestRecorderController != null) {
-                mGuestRecorderController.startCameraRecorder();
+        final MyVideoView videoView = new MyVideoView(InteractAudienceActivity.this);
+        int w = 360;
+        int h = 640;
+        if (mCurrOrientation == EMODE_LANDSCAPE) {
+            w = 640;
+            h = 360;
+        }
+
+        videoView.setClickable(true);
+        videoView.setOnTouchListener(InteractAudienceActivity.this);
+        videoView.setUid(myUid);
+        videoView.setAllButtonVisible(View.GONE);
+        videoView.setButtonVisible(R.id.interact_close_view, View.VISIBLE);
+        videoView.setVideoViewListener(new MyVideoView.VideoViewListener() {
+            @Override
+            public void changeToFullScreen(MyVideoView videoView1) {
             }
+
+            @Override
+            public void doOnClickMuteRemoteVideo(MyVideoView videoView, TextView tv) {
+            }
+
+            @Override
+            public void doOnClickMuteRemoteAudio(MyVideoView videoView, TextView tv) {
+            }
+
+            @Override
+            public void doOnClickfinish(final MyVideoView videoView) {
+                changeToAudience();
+            }
+        });
+        mAllVideoMap.put(myUid, videoView);
+
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(w, h);
+        Random random = new Random();
+        lp.leftMargin = random.nextInt(mScreenWidth - w);
+        lp.topMargin = random.nextInt(mScreenHeight - h);
+        mVideoLayer.addView(videoView, -1, lp);
+        View view = null;
+        if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
+            view = new QHVCSurfaceView(InteractAudienceActivity.this);
+            if (view instanceof SurfaceView) {
+                SurfaceView surfaceV = (SurfaceView) view;
+                surfaceV.setZOrderOnTop(true);
+                surfaceV.setZOrderMediaOverlay(true);
+            }
+            mQhvcLiveKitAdvanced.setDisplayPreview((QHVCSurfaceView) view);
+            videoView.setBgView(view, w, h);
+            mQhvcLiveKitAdvanced.prepare();
+            mQhvcLiveKitAdvanced.startPreview();/*开始预览*/
+
+            SurfaceTexture surfaceTexture = mWorker.getSurfaceTexture(videoEncodeWidth, videoEncodeHeight);
+            if (surfaceTexture != null) {
+                mQhvcLiveKitAdvanced.setSharedSurfaceTexture(surfaceTexture);
+            }
+            mQhvcLiveKitAdvanced.startEncode();
+
         } else {
             if (talkType == InteractConstant.TALK_TYPE_AUDIO) {/*纯音频*/
                 mWorker.preview(true, null, myUid);
                 return;
             }
-            View view = QHVCInteractiveUtils.CreateRendererView(InteractAudienceActivity.this);
+            view = QHVCInteractiveUtils.CreateRendererView(InteractAudienceActivity.this);
             if (view != null) {
                 if (view instanceof SurfaceView) {
                     SurfaceView surfaceV = (SurfaceView) view;
@@ -494,51 +579,10 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
                     surfaceV.setZOrderMediaOverlay(true);
                 }
             }
-
-            final MyVideoView videoView = new MyVideoView(InteractAudienceActivity.this);
-            int w = 360;
-            int h = 640;
-            if (mCurrOrientation == EMODE_LANDSCAPE) {
-                w = 640;
-                h = 360;
-            }
-
             videoView.setBgView(view, w, h);
-            videoView.setClickable(true);
-            videoView.setOnTouchListener(InteractAudienceActivity.this);
-            videoView.setUid(myUid);
-            videoView.setAllButtonVisible(View.GONE);
-            videoView.setButtonVisible(R.id.interact_close_view, View.VISIBLE);
-            videoView.setVideoViewListener(new MyVideoView.VideoViewListener() {
-                @Override
-                public void changeToFullScreen(MyVideoView videoView1) {
-                }
-
-                @Override
-                public void doOnClickMuteRemoteVideo(MyVideoView videoView, TextView tv) {
-                }
-
-                @Override
-                public void doOnClickMuteRemoteAudio(MyVideoView videoView, TextView tv) {
-                }
-
-                @Override
-                public void doOnClickfinish(final MyVideoView videoView) {
-                    changeToAudience();
-                }
-            });
-
-            //videoView.setStreamId(streamId);
-
-            mAllVideoMap.put(myUid, videoView);
-
-            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(w, h);
-            Random random = new Random();
-            lp.leftMargin = random.nextInt(mScreenWidth - w);
-            lp.topMargin = random.nextInt(mScreenHeight - h);
-            mVideoLayer.addView(videoView, -1, lp);
             mWorker.preview(true, view, myUid);
         }
+
     }
 
     private void cancelPreview() {
@@ -604,52 +648,6 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     /**
      * 关闭连麦
      */
-    private void closeHostIn() {
-        if (mCurrState == STATE_GUEST) {
-            mCurrState = STATE_AUDIENCE;
-            //先关闭连麦的东西
-            if (mGuestRecorderController != null) {
-                //mGuestRecorderController.setEnabledStart(false);
-                mGuestRecorderController.releaseCamera();
-                mGuestRecorderController.destroy();
-                mGuestRecorderController = null;
-            }
-            if (mWorker != null) {
-                mWorker.leaveChannel(roomId);
-            }
-
-            Set<String> keys = mAllVideoMap.keySet();
-            Object[] allKeys = keys.toArray();
-            for (int i = 0; i < allKeys.length; i++) {
-                String key = (String) allKeys[i];
-                MyVideoView videoViewTmp = mAllVideoMap.get(key);
-                if (videoViewTmp != null) {
-                    String uidTmp = videoViewTmp.getUid();
-                    if (!TextUtils.isEmpty(uidTmp) && uidTmp.equals(myUid)) {
-                        if (videoViewTmp != mMainVideoView) {
-                            View newLargeView = videoViewTmp.getBgView();
-                            if (newLargeView instanceof GLSurfaceView) {
-                                GLSurfaceView newLargeGLView = (GLSurfaceView) newLargeView;
-                                newLargeGLView.setZOrderOnTop(false);
-                                newLargeGLView.setZOrderMediaOverlay(false);
-                            }
-                            videoViewTmp.removeBgView();
-                            mMainVideoView.setUid(videoViewTmp.getUid());
-                            mMainVideoView.removeBgView();
-                            mMainVideoView.setBgView(newLargeView, mScreenWidth, mScreenHeight);
-                        }
-                    }
-                }
-                mVideoLayer.removeView(videoViewTmp);
-                mAllVideoMap.remove(key);
-            }
-            mVideoLayer.addView(mMainVideoView, mScreenWidth, mScreenHeight);
-            mAllVideoMap.put(mMainVideoView.getUid(), mMainVideoView);
-
-            mMainVideoView.removeBgView();
-            //guestView.setVisibility(View.GONE);
-        }
-    }
 
     private void initWorker() {
         if (mWorker == null) {
@@ -662,10 +660,6 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         }
 
         mInteractEngine = mWorker.getInteractEngine();
-
-        if (mGuestRecorderController != null) {
-            mGuestRecorderController.setVideoSourceListener(mWorker);
-        }
     }
 
     private void loadInteractEngine() {
@@ -700,55 +694,54 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     }
 
     private void setVideoWidthAndHeight(int profile) {
-        if (mGuestRecorderController != null) {
-            int w = 360;
-            int h = 640;
-            switch (profile) {
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_240P_3: //240x240
-                    w = 240;
-                    h = 240;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_240P_4: // 424x240
-                    w = 240;
-                    h = 424;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P: // 640x360
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_4: // 640x360
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_9: // 640x360
-                    w = 360;
-                    h = 640;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_3: // 360x360
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_6: // 360x360
-                    w = 360;
-                    h = 360;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_3: // 480x480
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_6: // 480x480
-                    w = 480;
-                    h = 480;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_8: // 848x480
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_9: // 848x480
-                    w = 480;
-                    h = 848;
-                    break;
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P: // 1280x720  15   1130
-                case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P_3: // 1280x720  30   1710
-                    w = 720;
-                    h = 1280;
-                    break;
-                default:
-                    break;
-            }
-            if (mCurrOrientation == Constants.EMode.EMODE_LANDSCAPE) {
-                int tempW = w;
-                w = h;
-                h = tempW;
-            }
-
-            mGuestRecorderController.setVideoSize(w, h);
+        int w = 360;
+        int h = 640;
+        switch (profile) {
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_240P_3: //240x240
+                w = 240;
+                h = 240;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_240P_4: // 424x240
+                w = 240;
+                h = 424;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P: // 640x360
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_4: // 640x360
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_9: // 640x360
+                w = 360;
+                h = 640;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_3: // 360x360
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_360P_6: // 360x360
+                w = 360;
+                h = 360;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_3: // 480x480
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_6: // 480x480
+                w = 480;
+                h = 480;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_8: // 848x480
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_480P_9: // 848x480
+                w = 480;
+                h = 848;
+                break;
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P: // 1280x720  15   1130
+            case QHVCInteractiveConstant.VideoProfile.VIDEO_PROFILE_720P_3: // 1280x720  30   1710
+                w = 720;
+                h = 1280;
+                break;
+            default:
+                break;
         }
+        if (mCurrOrientation == Constants.EMode.EMODE_LANDSCAPE) {
+            int tempW = w;
+            w = h;
+            h = tempW;
+        }
+        videoEncodeWidth = w;
+        videoEncodeHeight = h;
+
     }
 
     public void joinChannel() {
@@ -758,8 +751,8 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     // 切换摄像头
     private void doSwitchCamera() {
         if (mUserVideoCapture == InteractConstant.VIDEO_USER_CAPTURE) {
-            if (mGuestRecorderController != null) {
-                mGuestRecorderController.switchCamera();
+            if (mQhvcLiveKitAdvanced != null) {
+                mQhvcLiveKitAdvanced.switchCameraFacing();
             }
         } else {
             if (mInteractEngine != null) {
@@ -936,7 +929,9 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
     @Override
     public void onFirstRemoteVideoFrame(String uid, int width, int height, int elapsed) {
-
+        if(uid.equals(mRoomModel.getBindRoleId())){
+            resolution = height+"X"+width;
+        }
     }
 
     @Override
@@ -1056,11 +1051,11 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
     }
 
     private void changeToFullView(MyVideoView videoView) {
-        if (mMainVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
-            if (mGuestRecorderController != null) {
-                mGuestRecorderController.releaseCamera();
-            }
-        }
+//        if (mMainVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
+//            if (mGuestRecorderController != null) {
+//                mGuestRecorderController.releaseCamera();
+//            }
+//        }
 
         videoView.changeToLargeVideoView(mMainVideoView);
         if (videoView.getUid().equals(myUid)) {
@@ -1086,16 +1081,16 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
             mInteractEngine.setRemoteVideoStream(videoView.getUid(), QHVCInteractiveConstant.VIDEO_STREAM_LOW);
         }
 
-        if (mMainVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
-            if (mGuestRecorderController != null) {
-                LibTaskController.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mGuestRecorderController.resumeCamera();
-                    }
-                }, 300);
-            }
-        }
+//        if (mMainVideoView.getUid().equals(myUid) || videoView.getUid().equals(myUid)) {
+//            if (mGuestRecorderController != null) {
+//                LibTaskController.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        mGuestRecorderController.resumeCamera();
+//                    }
+//                }, 300);
+//            }
+//        }
     }
 
     private void removeRemoteVideo(String uid, int reason, String streamId) {
@@ -1182,7 +1177,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
         } else {
             roleTextView.setText("当前角色：嘉宾");
         }
-        resolutionRatioView.setText("分辨率：640*360");
+        resolutionRatioView.setText("分辨率："+resolution);
         codeRateView.setText("视频码率: " + codeRate + " kbps");
         fpsView.setText("视频帧率：" + fps + " fps");
         videoQualityView.setText("视频质量：" + quality);
@@ -1297,7 +1292,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
             workThreadPoolExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    InteractServerApi.getRoomUserList(myUid, roomId, new int[] {
+                    InteractServerApi.getRoomUserList(myUid, roomId, new int[]{
                             InteractConstant.USER_IDENTITY_ANCHOR, InteractConstant.USER_IDENTITY_GUEST, InteractConstant.USER_IDENTITY_AUDIENCE
                     }, new InteractServerApi.ResultCallback<List<InteractUserModel>>() {
 
@@ -1506,7 +1501,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX,
-                float distanceY) {
+                                float distanceY) {
             return false;
         }
 
@@ -1517,7 +1512,7 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
-                float velocityY) {
+                               float velocityY) {
             //向左滑
             if (e1.getX() - e2.getX() > FLING_MIN_DISTANCE
                     && Math.abs(velocityX) > FLING_MIN_VELOCITY) {
@@ -1570,5 +1565,101 @@ public class InteractAudienceActivity extends BaseActivity implements View.OnCli
 
     public QHVCInteractiveKit getInteractEngine() {
         return mInteractEngine;
+    }
+
+    /**
+     * 显示美颜PopWindow
+     */
+    private void showBeautyPopWindow() {
+        mQhvcLiveKitAdvanced.openBeauty();/*开启美颜功能*/
+        if (mBeautyPopWindow == null) {
+            mBeautyPopWindow = new BeautyPopWindow(this);
+            mBeautyPopWindow.showAtLocation(mMainVideoView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+            myCommonButton.setVisibility(View.INVISIBLE);
+            mBeautyPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    myCommonButton.setVisibility(View.VISIBLE);
+                }
+            });
+            mBeautyPopWindow.setSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser) {
+                        float fl = (float) (progress * 0.01);
+                        switch ((int) seekBar.getTag()) {
+                            case R.id.record_popwindow_beauty:
+                                mQhvcLiveKitAdvanced.setBeautyRatio(fl);
+                                break;
+                            case R.id.record_popwindow_white:
+                                mQhvcLiveKitAdvanced.setWhiteRatio(fl);
+                                break;
+                            case R.id.record_popwindow_sharpface:
+                                mQhvcLiveKitAdvanced.setSharpFaceRatio(fl);
+                                break;
+                            case R.id.record_popwindow_bigeye:
+                                mQhvcLiveKitAdvanced.setBigEyeRatio(fl);
+                                break;
+                        }
+                    }
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+
+                }
+            });
+        } else {
+            if (!mBeautyPopWindow.isShowing()) {
+                mBeautyPopWindow.showAtLocation(mMainVideoView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                myCommonButton.setVisibility(View.INVISIBLE);
+            } else {
+                mBeautyPopWindow.dismiss();
+            }
+        }
+    }
+
+
+    private void showFaceUPopWindow() {
+        if (mFaceUPopWindow == null) {
+            mFaceUPopWindow = new FaceUPopWindow(this);
+            mFaceUPopWindow.showAtLocation(mMainVideoView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+            myCommonButton.setVisibility(View.INVISIBLE);
+            mFaceUPopWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    myCommonButton.setVisibility(View.VISIBLE);
+                }
+            });
+            mFaceUPopWindow.setOnItemClickListener(new FaceUPopWindow.MyItemClickListener() {
+                @Override
+                public void onItemClick(View view, int postion, String faceUPath) {
+                    if (mQhvcLiveKitAdvanced != null) {
+                        if (postion == 0) {
+                            mQhvcLiveKitAdvanced.stopFaceU();
+                        } else {
+                            mQhvcLiveKitAdvanced.showFaceU(faceUPath, -1, new QHVCFaceUCallBack() {
+                                @Override
+                                public void onFaceUBack(String sourcePath, String faceUInfo) {
+
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            if (!mFaceUPopWindow.isShowing()) {
+                mFaceUPopWindow.showAtLocation(mMainVideoView, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                myCommonButton.setVisibility(View.INVISIBLE);
+            } else {
+                mFaceUPopWindow.dismiss();
+            }
+        }
     }
 }

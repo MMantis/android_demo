@@ -54,7 +54,6 @@ public class InteractCallback extends QHVCInteractiveEventHandler {
     }
 
     public void onAudioVolumeIndication(QHVCInteractiveEventHandler.AudioVolumeInfo[] speakers, int totalVolume) {
-
         for (int i = 0; i < allCallBack.size(); i++) {
             InteractCallBackEvent event = allCallBack.get(i);
             event.onAudioVolumeIndication(speakers, totalVolume);
